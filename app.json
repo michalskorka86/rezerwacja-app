@@ -48,6 +48,15 @@
     "owner": "michal198926s-team",
     "runtimeVersion": {
       "policy": "fingerprint"
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "e7e72df5-b377-4f6a-a4c3-0893d39d9bfb"
+      }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/e7e72df5-b377-4f6a-a4c3-0893d39d9bfb"
     }
   }
 }
