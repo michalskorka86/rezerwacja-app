@@ -148,8 +148,15 @@ export default function Kalendarz() {
       />
 
       {offline ? (
-        <Pressable onPress={() => dane.odswiez(true)} style={styles.offline}>
-          <Text style={styles.offlineTxt}>⚠️ {bladOdswiezania} Pokazuję dane z godz. {czasDanych} — dotknij, aby odświeżyć.</Text>
+        <Pressable
+          onPress={async () => {
+            if (odswiezam) return;
+            if (!(await dane.odswiez(true))) toast('❌ Nadal nie ma połączenia z serwerem. Spróbuj za chwilę.');
+          }}
+          style={({ pressed }) => [styles.offline, pressed && { opacity: 0.7 }]}>
+          <Text style={styles.offlineTxt}>
+            {odswiezam ? '⏳ Odświeżam…' : `⚠️ ${bladOdswiezania} Pokazuję dane z godz. ${czasDanych} — dotknij, aby odświeżyć.`}
+          </Text>
         </Pressable>
       ) : null}
 

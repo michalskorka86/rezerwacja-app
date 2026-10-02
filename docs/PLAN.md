@@ -215,5 +215,8 @@ Nowe tabele jako pliki `server/sql/NNN_*.sql` (wgrywane ręcznie w phpMyAdmin), 
   iPhone (konto Apple) — na koniec, gdy aplikacja będzie gotowa (decyzja Michała).
 - 02.10: etap 3 — Wynajem sprzętu i Zadania (aktualizacja w powietrzu, bez nowego APK). Listy zapisane w telefonie,
   filtry i zakładki liczone w telefonie. Wstecz w telefonie w formularzu = „← wróć do listy” (z pytaniem, gdy coś wpisano).
-  Do uzgodnienia z Michałem (nie wprowadzone, wygląd 1:1): licznik zadań przy imieniu w zakładkach,
-  czerwony termin zadania po terminie.
+- 02.10: Michał zgodził się: licznik otwartych zadań przy imieniu w zakładkach i „⚠️ Po terminie” na czerwono.
+- 02.10: poprawka „brak połączenia” — pasek nie znikał i dotknięcie nic nie robiło (zawieszone zapytanie blokowało
+  kolejne odświeżanie do restartu). Teraz: limit czasu także na czytanie odpowiedzi i na całe odświeżanie,
+  jedna ponowna próba po 2,5 s, „⏳ Odświeżam…” po dotknięciu, zadanie w tle nie działa, gdy aplikacja jest na ekranie,
+  a po 3 nieudanych próbach z rzędu zgłoszenie z przyczyną trafia do logu błędów (bledy.php).

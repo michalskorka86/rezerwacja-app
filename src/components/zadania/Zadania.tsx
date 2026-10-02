@@ -7,7 +7,7 @@ import { czytajPamiec, zapiszPamiec } from '@/db/baza';
 import { dataZRokiem, dzisStr } from '@/logika/daty';
 import { komunikatBledu, toBrakSieci } from '@/logika/klient';
 import type { Osoba, Zadanie } from '@/logika/typy';
-import { bladZadania, daneZadania, noweZadanie, podzielZadania, wygladPriorytetu, type Priorytet, type StanZadania } from '@/logika/zadania';
+import { bladZadania, daneZadania, noweZadanie, podzielZadania, poTerminie, wygladPriorytetu, type Priorytet, type StanZadania } from '@/logika/zadania';
 import { useDane } from '@/stan/DaneProvider';
 import { klient } from '@/stan/klient';
 import { zglos } from '@/stan/zglos';
@@ -121,6 +121,7 @@ export function Zadania() {
 
   const zadaniaOsoby = dane ? dane.zadania.filter((z) => z.dla_kogo === aktywna) : [];
   const { aktywne, wykonane } = podzielZadania(zadaniaOsoby);
+  const dzis = dzisStr();
 
   return (
     <View>
@@ -128,9 +129,13 @@ export function Zadania() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }}>
           {(dane?.osoby ?? []).map((o) => {
             const on = o.id === aktywna;
+            const ile = dane?.zadania.filter((z) => z.dla_kogo === o.id && !z.wykonane).length ?? 0;
             return (
               <Pressable key={o.id} onPress={() => setOsoba(o.id)} style={[styles.zakladka, on && styles.zakladkaOn]} accessibilityState={{ selected: on }}>
-                <Text style={[styles.zakladkaTxt, on && styles.zakladkaTxtOn]}>{o.imie}</Text>
+                <Text style={[styles.zakladkaTxt, on && styles.zakladkaTxtOn]}>
+                  {o.imie}
+                  {ile ? <Text style={styles.ile}> {ile}</Text> : null}
+                </Text>
               </Pressable>
             );
           })}
@@ -154,6 +159,7 @@ export function Zadania() {
 
         {aktywne.map((z) => {
           const k = wygladPriorytetu(z.priorytet);
+          const po = poTerminie(z, dzis);
           return (
             <View key={z.id} style={[styles.karta, { backgroundColor: k.tlo, borderColor: k.ramka }]}>
               <View style={styles.gora}>
@@ -171,8 +177,8 @@ export function Zadania() {
               </View>
               {z.opis ? <Text style={[styles.opis, { color: k.tekst }]}>{z.opis}</Text> : null}
               <View style={styles.dol}>
-                <Text style={[styles.info, { color: k.tekst }]}>
-                  {z.termin ? `⏰ Do: ${z.termin}` : ''}
+                <Text style={[styles.info, { color: k.tekst }, po && { opacity: 1 }]}>
+                  {z.termin ? <Text style={po && styles.poTerminie}>{po ? '⚠️ Po terminie: ' : '⏰ Do: '}{z.termin}</Text> : null}
                   {z.termin ? '  ·  ' : ''}Od: {z.od_imie}
                 </Text>
                 <Pressable onPress={() => usun(z)} disabled={trwa === z.id} hitSlop={8} accessibilityLabel="Usuń zadanie" style={styles.kosz}>
@@ -335,6 +341,7 @@ const styles = StyleSheet.create({
   zakladkaOn: { borderBottomColor: C.green },
   zakladkaTxt: { fontFamily: Fonts.medium, fontSize: 13, color: C.text2 },
   zakladkaTxtOn: { fontFamily: Fonts.bold, color: C.green },
+  ile: { fontFamily: Fonts.bold, fontSize: 11, color: C.alarm },
   dodaj: { paddingHorizontal: 14, backgroundColor: C.green, justifyContent: 'center' },
   dodajTxt: { color: '#fff', fontFamily: Fonts.semibold, fontSize: 12 },
   lista: { paddingVertical: 10, paddingHorizontal: 12, gap: 8 },
@@ -352,6 +359,7 @@ const styles = StyleSheet.create({
   opis: { fontFamily: Fonts.regular, fontSize: 12, opacity: 0.8, marginBottom: 6, marginLeft: 34 },
   dol: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginLeft: 34 },
   info: { flex: 1, fontFamily: Fonts.regular, fontSize: 11, opacity: 0.7 },
+  poTerminie: { fontFamily: Fonts.bold, color: C.alarm, opacity: 1 },
   kosz: { paddingHorizontal: 6, paddingVertical: 2 },
   koszTxt: { fontSize: 14, color: '#bbb' },
   wykonaneNaglowek: { fontFamily: Fonts.medium, fontSize: 12, color: C.text3, paddingVertical: 6, paddingHorizontal: 2 },

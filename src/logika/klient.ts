@@ -7,11 +7,14 @@ export class BladApi extends Error {
   /** kod z serwera (np. 'zaloguj', 'uprawnienia') albo 'siec' / 'serwer' */
   kod: string;
   http: number;
-  constructor(kod: string, msg: string, http = 0) {
+  /** techniczna przyczyna (do zgłoszeń błędów, nie dla pracownika) */
+  przyczyna?: string;
+  constructor(kod: string, msg: string, http = 0, przyczyna?: string) {
     super(msg);
     this.name = 'BladApi';
     this.kod = kod;
     this.http = http;
+    this.przyczyna = przyczyna;
   }
 }
 
@@ -43,28 +46,38 @@ export function utworzKlienta(u: UstawieniaKlienta): Klient {
     if (token) naglowki['X-Token'] = token;
     if (opcje.body !== undefined) naglowki['Content-Type'] = 'application/json';
 
+    // Limit czasu obejmuje też czytanie odpowiedzi: po uśpieniu telefonu połączenie potrafi „zawisnąć” w połowie.
     const ctrl = new AbortController();
     const zegar = setTimeout(() => ctrl.abort(), opcje.czasMs ?? 15000);
     let odp: Response;
+    let j: { ok?: boolean; kod?: string; msg?: string } & Record<string, unknown>;
     try {
-      odp = await (u.fetchFn ?? fetch)(`${u.url}?${params.toString()}`, {
-        method: opcje.body !== undefined ? 'POST' : 'GET',
-        headers: naglowki,
-        body: opcje.body !== undefined ? JSON.stringify(opcje.body) : undefined,
-        signal: ctrl.signal,
-      });
-    } catch {
-      throw new BladApi('siec', BRAK_SIECI);
+      try {
+        odp = await (u.fetchFn ?? fetch)(`${u.url}?${params.toString()}`, {
+          method: opcje.body !== undefined ? 'POST' : 'GET',
+          headers: naglowki,
+          body: opcje.body !== undefined ? JSON.stringify(opcje.body) : undefined,
+          signal: ctrl.signal,
+        });
+      } catch (e) {
+        throw new BladApi('siec', BRAK_SIECI, 0, ctrl.signal.aborted ? `limit czasu ${akcja}` : `${akcja}: ${String(e)}`);
+      }
+      let tekst: string;
+      try {
+        const przerwane = new Promise<never>((_, odrzuc) => ctrl.signal.addEventListener('abort', () => odrzuc(new Error('limit czasu'))));
+        tekst = await Promise.race([odp.text(), przerwane]);
+      } catch (e) {
+        throw new BladApi('siec', BRAK_SIECI, odp.status, `${akcja} (czytanie): ${String(e)}`);
+      }
+      try {
+        j = JSON.parse(tekst) as typeof j;
+      } catch {
+        throw new BladApi('serwer', `Serwer odpowiedział niezrozumiale (kod ${odp.status}). Spróbuj ponownie za chwilę.`, odp.status);
+      }
     } finally {
       clearTimeout(zegar);
     }
 
-    let j: { ok?: boolean; kod?: string; msg?: string } & Record<string, unknown>;
-    try {
-      j = (await odp.json()) as typeof j;
-    } catch {
-      throw new BladApi('serwer', `Serwer odpowiedział niezrozumiale (kod ${odp.status}). Spróbuj ponownie za chwilę.`, odp.status);
-    }
     if (!odp.ok || j.ok !== true) {
       const kod = String(j.kod ?? 'serwer');
       if (kod === 'zaloguj') u.naWylogowanie?.();

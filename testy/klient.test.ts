@@ -68,3 +68,12 @@ test('klient + serwer PHP: logowanie i rezerwacje', { skip: !API && 'bez REZ_API
   assert.ok(Array.isArray(r.rezerwacje));
   await assert.rejects(k('rezerwacja_dodaj', { body: {} }), (e: unknown) => e instanceof BladApi && e.message.startsWith('Wybierz lokalizację'));
 });
+
+test('klient: zawieszone połączenie kończy się po limicie czasu (nie blokuje odświeżania)', async () => {
+  // serwer przysłał nagłówki, ale treść nigdy nie dochodzi
+  const wiszacy = (async () => ({ ok: true, status: 200, text: () => new Promise<string>(() => {}) })) as unknown as typeof fetch;
+  const k = utworzKlienta({ url: 'http://x/api.php', wersja: '1', token: () => null, fetchFn: wiszacy });
+  const start = Date.now();
+  await assert.rejects(k('ja', { czasMs: 300 }), (e: unknown) => e instanceof BladApi && e.kod === 'siec');
+  assert.ok(Date.now() - start < 3000);
+});

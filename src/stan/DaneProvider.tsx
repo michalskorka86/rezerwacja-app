@@ -5,7 +5,7 @@ import { AppState } from 'react-native';
 import { wyczyscPamiec } from '@/db/baza';
 import { wyslijBledy } from '@/logika/bledy';
 import { dzisStr, zakresPobierania } from '@/logika/daty';
-import { komunikatBledu, toBrakSieci } from '@/logika/klient';
+import { BladApi, komunikatBledu, toBrakSieci } from '@/logika/klient';
 import { podmienRezerwacje, pobierzZSerwera, PUSTY_STAN, wczytajZPamieci, type DaneKonta, type Stan } from '@/logika/pobieranie';
 import type { Filtr, Rezerwacja } from '@/logika/typy';
 
@@ -18,6 +18,18 @@ import { zglos } from './zglos';
 const CO_MS = 30 * 1000;
 /** Konto i słowniki (atrakcje, dodatki) — rzadziej. */
 const PELNE_CO_MS = 10 * 60 * 1000;
+/** Całe odświeżanie (kilka zapytań) nie może trwać dłużej — inaczej „zawieszone” połączenie blokowałoby kolejne próby. */
+const LIMIT_MS = 40 * 1000;
+
+const czekaj = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+function zLimitem<T>(p: Promise<T>, ms: number): Promise<T> {
+  let zegar: ReturnType<typeof setTimeout> | undefined;
+  const limit = new Promise<never>((_, odrzuc) => {
+    zegar = setTimeout(() => odrzuc(new BladApi('siec', 'Brak połączenia z internetem. Spróbuj ponownie za chwilę.', 0, 'limit całego odświeżania')), ms);
+  });
+  return Promise.race([p, limit]).finally(() => clearTimeout(zegar));
+}
 
 type Kontekst = Stan & {
   /** null = jeszcze sprawdzamy (ekran startowy) */
@@ -62,8 +74,10 @@ export function DaneProvider({ children }: { children: ReactNode }) {
   const [bladOdswiezania, setBlad] = useState<string | null>(null);
   const [filtr, setFiltr] = useState<Filtr>('all');
   const [niedoszle, setNiedoszle] = useState<Rezerwacja[] | null>(null);
-  const trwa = useRef(false);
+  /** od kiedy trwa odświeżanie (0 = nie trwa) */
+  const trwaOd = useRef(0);
   const ostatniePelne = useRef(0);
+  const nieudane = useRef(0);
 
   const wylogujLokalnie = useCallback(async () => {
     await ustawToken(null);
@@ -78,24 +92,42 @@ export function DaneProvider({ children }: { children: ReactNode }) {
 
   const odswiez = useCallback(
     async (pelne = false): Promise<boolean> => {
-      if (trwa.current || !(await token())) return false;
-      trwa.current = true;
+      // Poprawka: wcześniej „zawieszone” zapytanie blokowało odświeżanie do ponownego uruchomienia aplikacji.
+      if ((trwaOd.current && Date.now() - trwaOd.current < LIMIT_MS + 5000) || !(await token())) return false;
+      const moje = Date.now();
+      trwaOd.current = moje;
       setOdswiezam(true);
       const czyPelne = pelne || Date.now() - ostatniePelne.current > PELNE_CO_MS;
       try {
-        const nowe = await pobierzZSerwera(db, klient, czyPelne);
+        let nowe;
+        try {
+          nowe = await zLimitem(pobierzZSerwera(db, klient, czyPelne), LIMIT_MS);
+        } catch (e) {
+          // po wybudzeniu telefonu sieć często wstaje sekundę później — jedna ponowna próba, zanim pokażemy pasek
+          if (!toBrakSieci(e)) throw e;
+          await czekaj(2500);
+          nowe = await zLimitem(pobierzZSerwera(db, klient, czyPelne), LIMIT_MS);
+        }
         if (czyPelne) ostatniePelne.current = Date.now();
         setStan((s) => ({ ...s, ...nowe }));
         setBlad(null);
+        nieudane.current = 0;
         wyslijBledy(db, klient, { id: await idUrzadzenia(), model: MODEL }).catch(() => {});
         return true;
       } catch (e) {
         setBlad(komunikatBledu(e));
-        if (!toBrakSieci(e)) zglos(e, { dopisek: 'Odświeżanie' });
+        nieudane.current += 1;
+        // brak sieci zwykle nie jest błędem aplikacji, ale gdy powtarza się uparcie — zapisz do logu z przyczyną
+        if (!toBrakSieci(e) || nieudane.current === 3) {
+          const przyczyna = e instanceof BladApi && e.przyczyna ? ` [${e.przyczyna}]` : '';
+          zglos(e, { dopisek: `Odświeżanie (nieudane ${nieudane.current}×)${przyczyna}` });
+        }
         return false;
       } finally {
-        trwa.current = false;
-        setOdswiezam(false);
+        if (trwaOd.current === moje) {
+          trwaOd.current = 0;
+          setOdswiezam(false);
+        }
       }
     },
     [db],
