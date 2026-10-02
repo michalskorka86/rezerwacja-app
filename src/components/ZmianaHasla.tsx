@@ -3,6 +3,7 @@ import { StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { C, Fonts } from '@/constants/theme';
 import { komunikatBledu } from '@/logika/klient';
+import { bladHasla } from '@/logika/ustawienia';
 import { klient } from '@/stan/klient';
 import { useDane } from '@/stan/DaneProvider';
 
@@ -24,9 +25,8 @@ export function ZmianaHasla({ onGotowe }: { onGotowe: () => void }) {
   const [trwa, setTrwa] = useState(false);
 
   const zapisz = async () => {
-    if ((!reset && !stare) || !nowe || !nowe2) return setBlad('Wypełnij wszystkie pola');
-    if (nowe !== nowe2) return setBlad('Hasła nie są identyczne');
-    if (nowe.length < 6) return setBlad('Hasło min. 6 znaków');
+    const b = bladHasla({ stare, nowe, nowe2, reset });
+    if (b) return setBlad(b);
     setTrwa(true);
     setBlad('');
     try {

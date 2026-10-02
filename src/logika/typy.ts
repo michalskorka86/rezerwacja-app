@@ -110,3 +110,17 @@ export type Zadanie = {
 };
 
 export type Osoba = { id: number; imie: string; marka: Marka };
+
+/** Użytkownik w panelu admina (uzytkownicy_admin). */
+export type UzytkownikAdmin = {
+  id: number;
+  login: string;
+  imie: string;
+  marka: Marka;
+  rola: 'pelny' | 'podglad';
+  rola_nazwa: 'admin' | 'instruktor';
+  aktywny: boolean;
+  haslo_reset: boolean;
+};
+
+export type UstawieniaSms = { sms_silt: boolean; sms_arsenal: boolean; sms_wynajem: boolean };

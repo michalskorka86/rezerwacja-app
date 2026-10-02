@@ -12,9 +12,10 @@ import { WidokDnia } from '@/components/kalendarz/WidokDnia';
 import { WidokMiesiaca } from '@/components/kalendarz/WidokMiesiaca';
 import { Arkusz } from '@/components/ui/Arkusz';
 import { useKomunikaty } from '@/components/ui/Komunikaty';
-import { WBudowie } from '@/components/WBudowie';
 import { WynajemSprzetu } from '@/components/wynajem/WynajemSprzetu';
 import { Zadania } from '@/components/zadania/Zadania';
+import { Rozpiski } from '@/components/Rozpiski';
+import { Ustawienia } from '@/components/Ustawienia';
 import { ZmianaHasla } from '@/components/ZmianaHasla';
 import { C, cien, Fonts, Size } from '@/constants/theme';
 import { dzisStr, miesiac } from '@/logika/daty';
@@ -281,11 +282,11 @@ export default function Kalendarz() {
       <Arkusz widoczny={okno === 'zadania'} onZamknij={() => setOkno(null)} tytul="📋 Zadania" nazwa="zadania" wysokosc={0.96} bezPaddingu>
         <Zadania />
       </Arkusz>
-      <Arkusz widoczny={okno === 'ustawienia'} onZamknij={() => setOkno(null)} tytul="⚙️ Ustawienia" nazwa="ustawienia" wysokosc={0.98}>
-        <WBudowie co="Ustawienia" />
+      <Arkusz widoczny={okno === 'ustawienia'} onZamknij={() => setOkno(null)} tytul="⚙️ Ustawienia" nazwa="ustawienia" wysokosc={0.98} bezPaddingu>
+        <Ustawienia />
       </Arkusz>
-      <Arkusz widoczny={okno === 'rozpiski'} onZamknij={() => setOkno(null)} tytul="📄 Rozpiski dnia" nazwa="rozpiski">
-        <WBudowie co="Rozpiski" />
+      <Arkusz widoczny={okno === 'rozpiski'} onZamknij={() => setOkno(null)} tytul="📄 Rozpiski dnia" nazwa="rozpiski" wysokosc={0.98}>
+        <Rozpiski />
       </Arkusz>
       <Arkusz
         widoczny={oknoHasla && okno !== 'wynajem' && okno !== 'zadania'}

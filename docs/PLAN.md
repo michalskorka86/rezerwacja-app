@@ -153,11 +153,11 @@ Nowe tabele jako pliki `server/sql/NNN_*.sql` (wgrywane ręcznie w phpMyAdmin), 
 ## Etapy
 
 ### 0. Przygotowanie (Ty)
-- [ ] Utworzyć puste publiczne repo `michalskorka86/rezerwacja-app` (bez README) i dodać sekret `EXPO_TOKEN`
+- [x] Utworzyć puste publiczne repo `michalskorka86/rezerwacja-app` (bez README) i dodać sekret `EXPO_TOKEN`
       (ten sam co w SILT Lista).
-- [ ] Na expo.dev w `michal198926s-team` utworzyć projekt `rezerwacja-app` i podać mi jego Project ID.
-- [ ] Wyeksportować **samą strukturę** bazy rezerwacji (phpMyAdmin → Eksport → „Tylko struktura”) — do testów API.
-- [ ] Odpowiedzieć na pytania poniżej.
+- [x] Na expo.dev w `michal198926s-team` utworzyć projekt `rezerwacja-app` i podać mi jego Project ID.
+- [x] Wyeksportować **samą strukturę** bazy rezerwacji (phpMyAdmin → Eksport → „Tylko struktura”) — do testów API.
+- [x] Odpowiedzieć na pytania poniżej.
 
 ### 1. Serwer (Claude) — `server/` w repo, wgrywane do `rezerwacjaapp/aplikacja-api/`
 - [x] Logowanie tokenem, `ja`, wylogowanie, blokada prób (02.10).
@@ -165,7 +165,7 @@ Nowe tabele jako pliki `server/sql/NNN_*.sql` (wgrywane ręcznie w phpMyAdmin), 
 - [x] Zgłaszanie błędów + `bledy.php`, `apk.php`, min. wersja (02.10).
 - [x] `cron.php` — SMS o nowych rezerwacjach z www (02.10).
 - [x] Test API (`server/testy/uruchom.sh`, ~100 sprawdzeń) na pustej bazie MariaDB, też w GitHub „Sprawdź kod” (02.10).
-- [ ] Wgranie na serwer (Ty, instrukcja `server/README.md`).
+- [x] Wgranie na serwer (Ty, instrukcja `server/README.md`).
 
 ### 2. Aplikacja — podstawa (Claude)
 - [x] Projekt Expo (SDK 57), nazwa „Rezerwacje”, pakiet `pl.silt.rezerwacje`, ikona z PWA, kolory i DM Sans z `style.css` (02.10).
@@ -179,17 +179,18 @@ Nowe tabele jako pliki `server/sql/NNN_*.sql` (wgrywane ręcznie w phpMyAdmin), 
 ### 3. Pozostałe moduły (Claude)
 - [x] Wynajem sprzętu (+ obrazek do udostępnienia).
 - [x] Zadania (+ licznik).
-- [ ] Ustawienia (konto, użytkownicy, SMS).
-- [ ] Rozpiski Arsenału (PDF w telefonie).
-- [ ] Udostępnianie rezerwacji jako obrazek.
+- [x] Ustawienia (konto, użytkownicy, SMS) (02.10).
+- [x] Rozpiski Arsenału (PDF w telefonie) (02.10).
+- [x] Udostępnianie rezerwacji jako obrazek (02.10).
 
 ### 4. Wydawanie (Claude, potem Ty)
 - [x] Workflow: „Sprawdź kod”, „Załóż projekt Expo”, „Buduj APK (szybko)” (po „[apk]”), „Wyślij aktualizację” (po „[aktualizacja]”) (02.10).
-- [x] „Coś poszło nie tak” + zgłoszenia awarii (02.10). [ ] „📨 Zgłoś problem” w Ustawieniach.
-- [x] Pasek „📥 Jest nowa wersja aplikacji” (02.10). [ ] Komunikat o blokadzie starej wersji.
-- [ ] Pierwszy APK — test na telefonach obok PWA (Ty).
+- [x] „Coś poszło nie tak” + zgłoszenia awarii (02.10). [x] „📨 Zgłoś problem” w Ustawieniach (02.10).
+- [x] Pasek „📥 Jest nowa wersja aplikacji” (02.10). [x] Blokada starej wersji: komunikat + sama pobiera aktualizację (02.10).
+- [x] Pierwszy APK — test na telefonach obok PWA (Ty).
 
-- [ ] Odświeżanie w tle (expo-background-task) i powiadomienia push o nowej rezerwacji z www (nowy APK).
+- [x] Odświeżanie w tle (expo-background-task) (02.10).
+- [ ] Powiadomienia push o nowej rezerwacji z www (nowy APK).
 
 ### Na później (po uzgodnieniu)
 - Przeciąganie rezerwacji na inną godzinę/dzień.
@@ -220,3 +221,8 @@ Nowe tabele jako pliki `server/sql/NNN_*.sql` (wgrywane ręcznie w phpMyAdmin), 
   kolejne odświeżanie do restartu). Teraz: limit czasu także na czytanie odpowiedzi i na całe odświeżanie,
   jedna ponowna próba po 2,5 s, „⏳ Odświeżam…” po dotknięciu, zadanie w tle nie działa, gdy aplikacja jest na ekranie,
   a po 3 nieudanych próbach z rzędu zgłoszenie z przyczyną trafia do logu błędów (bledy.php).
+- 02.10: etap 4 — Ustawienia (Konto, 🔑 hasło, admin: Użytkownicy i 🔔 SMS; nowe: wersja, ⬇️ sprawdź aktualizację,
+  📨 Zgłoś problem, Wyloguj) i Rozpiski Arsenału (podgląd w telefonie, 🖨️ Drukuj, 📤 PDF z tym samym wyglądem co
+  pdf_dzien.php, liczone z zapisanych rezerwacji — także bez zasięgu). Bez nowego APK (expo-print był w apk-2).
+  Wybory w formularzach (rola, marka, lokalizacja) jako duże przyciski zamiast rozwijanych list.
+  Zostało: powiadomienia push (nowy APK + Firebase), iPhone na koniec.

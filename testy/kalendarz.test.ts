@@ -13,7 +13,7 @@ import {
   pasujeDoSzukania,
   wpisMiesiaca,
 } from '../src/logika/kalendarz';
-import { obliczSprzet, rezerwacjeRozpiski } from '../src/logika/rozpiska';
+import { htmlRozpiski, obliczSprzet, rezerwacjeRozpiski, uwagiBezTelefonow } from '../src/logika/rozpiska';
 import { czySwieto, wielkanoc } from '../src/logika/swieta';
 import type { Rezerwacja } from '../src/logika/typy';
 
@@ -163,4 +163,22 @@ test('rozpiski: sprzęt na raz (gra 3 h), jak pdf_dzien.php', () => {
     { atrakcja: 'Paintball', grup: 3, max_osob: 18, osob_lacznie: 24 },
   ]);
   assert.equal(rezerwacjeRozpiski(lista, '2026-10-10', 'wolomin').length, 2);
+});
+
+test('rozpiski: bez anulowanych, uwagi bez telefonów, HTML do druku', () => {
+  const lista = [
+    rez({ id: 1, marka: 'arsenal', lokalizacja: 'wolomin', data_rezerwacji: '2026-10-10', godzina_start: '10:00:00', liczba_osob: 10, atrakcja_id: 1, atrakcja_nazwa: 'Paintball', dodatki: [5], uwagi: 'Tel 501234567  urodziny <Kasi>', zadatek_status: 'oplacony', klient_imie_nazwisko: 'Jan & syn' }),
+    rez({ id: 2, marka: 'arsenal', lokalizacja: 'rembert', data_rezerwacji: '2026-10-10', godzina_start: '09:00:00', status: 'anulowana' }),
+  ];
+  const dzien = rezerwacjeRozpiski(lista, '2026-10-10', 'all');
+  assert.deepEqual(dzien.map((r) => r.id), [1]);
+  assert.equal(uwagiBezTelefonow('Tel +48 501234567  urodziny'), 'Tel urodziny');
+  const html = htmlRozpiski(dzien, '2026-10-10', 'all', { '5': 'Ognisko' });
+  assert.ok(html.includes('Sobota, 10.10.2026'));
+  assert.ok(html.includes('Rembertów + Wołomin'));
+  assert.ok(html.includes('✅ Ognisko'));
+  assert.ok(html.includes('urodziny &lt;Kasi&gt;') && !html.includes('501234567'));
+  assert.ok(html.includes('Jan &amp; syn'));
+  assert.ok(html.includes('10 szt.'));
+  assert.ok(htmlRozpiski([], '2026-10-11', 'rembert', {}).includes('Brak rezerwacji na 11.10.2026 (Rembertów)'));
 });
