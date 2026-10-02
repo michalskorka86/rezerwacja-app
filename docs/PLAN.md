@@ -207,5 +207,8 @@ Nowe tabele jako pliki `server/sql/NNN_*.sql` (wgrywane ręcznie w phpMyAdmin), 
 
 ## Stan
 - 02.10: przeczytana paczka PWA i repo SILT Lista, plan gotowy, odpowiedzi Michała wpisane.
-- 02.10: etap 1 (serwer) gotowy w repo i przetestowany; do wgrania na serwer. Następny: etap 2 (aplikacja).
-  Czekam na: EXPO_TOKEN w sekretach repo, decyzję w sprawie iPhone'a.
+- 02.10: etap 1 (serwer) wgrany na filedops.pl i działa (sprawdzone przez Michała).
+- 02.10: etap 2a — pierwszy APK (wydanie apk-2): logowanie, kalendarz Tydzień/Miesiąc/Dzień, szczegóły z akcjami.
+  Wynajem, Zadania, Ustawienia, formularz rezerwacji i rozpiski — okna „w budowie”, następne etapy.
+  Projekt Expo: michal198926s-team/rezerwacja-app.
+  iPhone (konto Apple) — na koniec, gdy aplikacja będzie gotowa (decyzja Michała).
