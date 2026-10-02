@@ -1,0 +1,37 @@
+# Aktualizacja „w powietrzu” (EAS Update) — bez budowania i instalowania APK. Uruchamia się:
+#  - SAMA po wysłaniu na main commita z „[aktualizacja]” w opisie (opis = tytuł commita),
+#  - albo ręcznie: Actions → „Wyślij aktualizację” → Run workflow.
+# Telefony pobierają ją same (przy starcie / po powrocie do aplikacji po 10 min).
+# Dochodzi tylko do APK z tymi samymi modułami systemowymi — gdy doszedł nowy moduł, potrzebny nowy APK („[apk]”).
+# Wymaga sekretu EXPO_TOKEN.
+name: Wyślij aktualizację
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      opis:
+        description: 'Co się zmieniło (krótko)'
+        type: string
+        default: 'Poprawki'
+jobs:
+  aktualizuj:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[aktualizacja]')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: npm ci
+      - name: Wyślij do EAS Update (kanał preview = APK z GitHuba)
+        env:
+          OPIS: ${{ inputs.opis }}
+        run: |
+          [ -n "$OPIS" ] || OPIS="$(git log -1 --format=%s | sed 's/\[aktualizacja\]//' | xargs)"
+          eas update --platform android --channel preview --message "$OPIS" --non-interactive

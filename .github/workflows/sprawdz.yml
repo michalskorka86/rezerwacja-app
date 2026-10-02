@@ -1,10 +1,23 @@
-# Sprawdzenie przy każdej zmianie (darmowe, na GitHubie): test API na prawdziwej bazie MariaDB i PHP 7.4 (jak na LH.pl).
-# Gdy dojdzie aplikacja: tu też TypeScript, lint i testy logiki.
+# Sprawdzenie przy każdej zmianie (darmowe, na GitHubie):
+#  - aplikacja: TypeScript i lint,
+#  - serwer: test API na prawdziwej bazie MariaDB i PHP 7.4 (jak na LH.pl) + testy logiki aplikacji z tym serwerem.
 name: Sprawdź kod
 on:
   push:
   pull_request:
 jobs:
+  aplikacja:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npx expo lint
+
   serwer:
     runs-on: ubuntu-latest
     services:
@@ -16,11 +29,16 @@ jobs:
         options: --health-cmd="healthcheck.sh --connect --innodb_initialized" --health-interval=5s --health-timeout=5s --health-retries=20
     steps:
       - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '7.4'
           extensions: pdo_mysql, mbstring, curl
       - name: Składnia PHP
         run: for f in server/*.php server/lib/*.php server/testy/*.php server/testy/mock/*.php; do php -l "$f"; done
-      - name: Test API
+      - name: Test API + testy logiki aplikacji
         run: sh server/testy/uruchom.sh 127.0.0.1 root root

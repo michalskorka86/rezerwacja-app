@@ -1,0 +1,67 @@
+# Budowanie APK NA GITHUBIE (bez kolejki Expo, ok. 20 min). Uruchamia się:
+#  - SAMO po wysłaniu na main commita z „[apk]” w opisie (opis wersji = tytuł commita),
+#  - albo ręcznie: Actions → „Buduj APK (szybko)” → Run workflow.
+# Wynik: wydanie (Releases) z plikiem rezerwacje.apk — telefony pobierają je przez
+#   https://filedops.pl/rezerwacjaapp/aplikacja-api/apk.php
+# i same widzą „📥 Jest nowa wersja aplikacji”, gdy APK ma nowe moduły systemowe.
+# Podpis z konta Expo (ten sam przy każdym APK), więc nowy APK instaluje się na starą aplikację bez utraty logowania.
+# Wymaga sekretu EXPO_TOKEN.
+name: Buduj APK (szybko)
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      opis:
+        description: 'Co nowego (krótko)'
+        type: string
+        default: 'Nowa wersja'
+permissions:
+  contents: write
+jobs:
+  apk:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[apk]')
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Android SDK
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: npm ci
+      - name: Zbuduj APK (na GitHubie, klucz podpisu z Expo)
+        env:
+          GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx4g
+        run: eas build --platform android --profile preview --local --non-interactive --output rezerwacje.apk
+      - name: Opis wersji (wersja.json)
+        env:
+          OPIS: ${{ inputs.opis }}
+          NUMER: ${{ github.run_number }}
+        run: |
+          [ -n "$OPIS" ] || OPIS="$(git log -1 --format=%s | sed 's/\[apk\]//; s/\[aktualizacja\]//' | xargs)"
+          export OPIS
+          npx expo-updates runtimeversion:resolve --platform android > rv.json
+          node -e '
+            const rv = JSON.parse(require("fs").readFileSync("rv.json", "utf8")).runtimeVersion;
+            const w = { runtimeVersion: rv, numer: Number(process.env.NUMER), data: new Date().toISOString(), opis: process.env.OPIS.slice(0, 90), commit: process.env.GITHUB_SHA.slice(0, 7) };
+            require("fs").writeFileSync("wersja.json", JSON.stringify(w));
+            console.log(w);
+          '
+      - name: Wydanie z plikiem APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          OPIS="$(node -p 'require("./wersja.json").opis')"
+          gh release create "apk-${{ github.run_number }}" rezerwacje.apk wersja.json \
+            --title "Rezerwacje — APK ${{ github.run_number }}" --notes "$OPIS" --latest

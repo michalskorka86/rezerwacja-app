@@ -1,0 +1,44 @@
+# Jednorazowo: zakłada projekt na koncie Expo (michal198926s-team/rezerwacja-app) i wpisuje jego numer do app.json.
+# Uruchamia się samo po wysłaniu zmian na main, dopóki w app.json nie ma projectId — potem nic nie robi.
+# Wymaga sekretu EXPO_TOKEN.
+name: Załóż projekt Expo
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  zaloz:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Czy projekt już jest?
+        id: jest
+        run: if grep -q '"projectId"' app.json; then echo "tak=1" >> "$GITHUB_OUTPUT"; fi
+      - uses: actions/setup-node@v6
+        if: steps.jest.outputs.tak != '1'
+        with:
+          node-version: 22
+          cache: npm
+      - uses: expo/expo-github-action@v8
+        if: steps.jest.outputs.tak != '1'
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Załóż projekt i ustaw aktualizacje
+        if: steps.jest.outputs.tak != '1'
+        run: |
+          npm ci
+          eas init --non-interactive --force
+          eas update:configure --platform android --non-interactive
+          git diff --stat
+      - name: Zapisz app.json w repozytorium
+        if: steps.jest.outputs.tak != '1'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app.json eas.json
+          git commit -m "Projekt Expo założony (projectId, adres aktualizacji)"
+          git pull --rebase origin main
+          git push origin HEAD:main

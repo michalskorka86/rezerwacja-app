@@ -41,6 +41,9 @@ Czytaj też `docs/PLAN.md` (ustalenia, ekrany, etapy) i `server/README.md` (wgry
 - Pakiet: `pl.silt.rezerwacje`. Bez Google Play: APK z GitHub Releases (Actions „Buduj APK (szybko)” = `eas build --local`),
   link `aplikacja-api/apk.php`, w aplikacji pasek „📥 Jest nowa wersja aplikacji”.
 - Poprawki JS: EAS Update (runtimeVersion = fingerprint), wysyłane SAME commitem na `main` z „[aktualizacja]” w opisie
-  (Michał nie ma przycisku „Run workflow”). Nowy APK tylko przy nowych modułach natywnych — wtedy powiedz o tym Michałowi.
+  (Michał nie ma przycisku „Run workflow”). Nowy APK: commit z „[apk]” — tylko przy nowych modułach natywnych
+  (wtedy powiedz o tym Michałowi). Workflow: `.github/workflows/` (sprawdz, zaloz-projekt-expo, buduj-apk-szybko, aktualizacja).
+- Podgląd ekranów na komputerze: `EXPO_PUBLIC_API_URL=http://127.0.0.1:8765/api.php npx expo start --web` z lokalnym API
+  (`server/testy/uruchom.sh` przygotowuje bazę); zmiany wyglądu sprawdzaj zrzutem w rozmiarze telefonu (360–412 px).
 - iPhone (jeden w zespole): decyzja w `docs/PLAN.md` → „iPhone”.
 - Katalogi `android/` i `ios/` są generowane — nie edytować ręcznie, konfiguracja w `app.json`.

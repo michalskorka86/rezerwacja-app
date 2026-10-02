@@ -168,13 +168,13 @@ Nowe tabele jako pliki `server/sql/NNN_*.sql` (wgrywane ręcznie w phpMyAdmin), 
 - [ ] Wgranie na serwer (Ty, instrukcja `server/README.md`).
 
 ### 2. Aplikacja — podstawa (Claude)
-- [ ] Projekt Expo (SDK 57), nazwa „Rezerwacje”, pakiet `pl.silt.rezerwacje`, ikona z PWA, kolory i DM Sans z `style.css`.
-- [ ] Logowanie, wymuszona zmiana hasła, wylogowanie.
-- [ ] Pamięć w telefonie (SQLite) + pobieranie danych w tle, pasek „Brak połączenia”.
-- [ ] Kalendarz: Tydzień (lista dni), pasek dni, legenda, filtr, szukanie, święta (liczone dla każdego roku — w PWA tylko 2023–2027).
-- [ ] Szczegóły rezerwacji + akcje.
+- [x] Projekt Expo (SDK 57), nazwa „Rezerwacje”, pakiet `pl.silt.rezerwacje`, ikona z PWA, kolory i DM Sans z `style.css` (02.10).
+- [x] Logowanie, wymuszona zmiana hasła po resecie, wylogowanie (z czyszczeniem danych z telefonu) (02.10).
+- [x] Pamięć w telefonie (SQLite) + odświeżanie: start, powrót, co 30 s, w tle; pasek „Brak połączenia — dane z godz.” (02.10).
+- [x] Kalendarz: Tydzień, pasek dni, legenda, filtr (z licznikiem nowych), szukanie, święta dla każdego roku + Wigilia od 2025 (02.10).
+- [x] Szczegóły rezerwacji + akcje: zadatek, potwierdzenie, oba maile, usuń, zadzwoń, 📤 obrazek do udostępnienia (02.10).
 - [ ] Formularz dodaj / edytuj / kopiuj, klawiatura liczb, okna daty i godziny, dodatki.
-- [ ] Dzień i Miesiąc.
+- [x] Dzień i Miesiąc (02.10).
 
 ### 3. Pozostałe moduły (Claude)
 - [ ] Wynajem sprzętu (+ obrazek do udostępnienia).
@@ -184,9 +184,9 @@ Nowe tabele jako pliki `server/sql/NNN_*.sql` (wgrywane ręcznie w phpMyAdmin), 
 - [ ] Udostępnianie rezerwacji jako obrazek.
 
 ### 4. Wydawanie (Claude, potem Ty)
-- [ ] Workflow: „Sprawdź kod”, „Buduj APK (szybko)”, „Wyślij aktualizację” (automat po „[aktualizacja]”).
-- [ ] „Coś poszło nie tak” + zgłoszenia + „📨 Zgłoś problem”.
-- [ ] Pasek „📥 Jest nowa wersja aplikacji”, blokada starej wersji.
+- [x] Workflow: „Sprawdź kod”, „Załóż projekt Expo”, „Buduj APK (szybko)” (po „[apk]”), „Wyślij aktualizację” (po „[aktualizacja]”) (02.10).
+- [x] „Coś poszło nie tak” + zgłoszenia awarii (02.10). [ ] „📨 Zgłoś problem” w Ustawieniach.
+- [x] Pasek „📥 Jest nowa wersja aplikacji” (02.10). [ ] Komunikat o blokadzie starej wersji.
 - [ ] Pierwszy APK — test na telefonach obok PWA (Ty).
 
 - [ ] Odświeżanie w tle (expo-background-task) i powiadomienia push o nowej rezerwacji z www (nowy APK).

@@ -16,5 +16,9 @@ trap 'kill $P1 $P2 2>/dev/null' EXIT
 sleep 1
 WYNIK=0
 php testy/test_api.php http://127.0.0.1:8765 || WYNIK=1
+# testy aplikacji (Node) z tym samym serwerem — gdy są zainstalowane pakiety (npm ci)
+if [ "$WYNIK" = 0 ] && [ -d ../node_modules ]; then
+  (cd .. && REZ_API=http://127.0.0.1:8765/api.php npm test --silent) || WYNIK=1
+fi
 if [ -s "$TMP/php.log" ] && grep -iE "warning|notice|fatal|deprecated|error" "$TMP/php.log"; then echo "Ostrzeżenia PHP (wyżej)"; WYNIK=1; fi
 exit $WYNIK

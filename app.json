@@ -1,0 +1,53 @@
+{
+  "expo": {
+    "name": "Rezerwacje",
+    "slug": "rezerwacja-app",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "rezerwacje",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#F5F5F2",
+    "android": {
+      "package": "pl.silt.rezerwacje",
+      "adaptiveIcon": {
+        "backgroundColor": "#2C6E3F",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "ios": {
+      "bundleIdentifier": "pl.silt.rezerwacje",
+      "supportsTablet": false
+    },
+    "web": {
+      "output": "single",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-sqlite",
+      "expo-font",
+      "expo-secure-store",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#2C6E3F",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 160
+        }
+      ],
+      "expo-sharing",
+      "expo-background-task"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "owner": "michal198926s-team",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    }
+  }
+}
