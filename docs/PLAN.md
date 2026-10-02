@@ -21,6 +21,25 @@ APK z Releases, aktualizacje „w powietrzu”, zgłaszanie błędów.
   Przed każdym commitem: `tsc`, lint, testy logiki w Node, test API PHP.
 - **Bezpieczeństwo:** żadnych haseł/tokenów/kluczy w repo; `config.php` zostaje tylko na serwerze; bez danych klientów w repo.
 
+## Odpowiedzi Michała (02.10)
+- **Telefony:** kilka Androidów + jeden iPhone. APK tylko na Androida; iPhone — patrz „iPhone” niżej.
+- **Internet:** w telefonach jest zawsze. Zapis rezerwacji tylko online. Odświeżanie jak w Kalendarzu Google:
+  przy włączeniu aplikacji, przy powrocie do niej, co 30 s na ekranie i w tle (zadanie w tle co ok. 15–30 min,
+  Android sam wybiera chwilę) + natychmiast po powiadomieniu push.
+- **Osobno od PWA:** obecna aplikacja jest używana na co dzień i musi działać. Nowe API w osobnym folderze,
+  **zero zmian w plikach PWA** (także szablony maili — kopia w nowym API, nie wspólny plik). Stare `mobile/api_mobile.php`
+  zostaje, dopóki nie będzie pewne, że jest zbędne.
+- **SMS o rezerwacjach z www:** przenosimy do crona co 5 min (nowy plik). PWA dalej wysyła przez `count_new` —
+  znacznik `sms_wyslany` chroni przed podwójnym SMS-em.
+- **Powiadomienia push:** robimy (etap 3; wymaga projektu Firebase do powiadomień i nowego APK).
+- **`instruktor-api.php`, `sync-cron.php`:** raczej nieużywane — najpierw wyłączyć (nie kasować), po 2 tygodniach usunąć.
+
+## iPhone
+APK nie zainstaluje się na iPhonie, a aplikacja na iPhone'a bez App Store wymaga płatnego konta Apple (99 USD/rok).
+Opcje: (a) iPhone zostaje na obecnym PWA (działa dalej, nic nie tracimy); (b) ta sama aplikacja wydana jako strona www
+(Expo umie zbudować wersję web z tego samego kodu) i dodana do ekranu początkowego iPhone'a — wygląd i funkcje jak w APK,
+push na iPhonie działa dla strony dodanej do ekranu; (c) konto Apple + TestFlight. Decyzja Michała: ⏳
+
 ## Co jest w PWA (przeczytane z paczki)
 
 | Plik | Co robi |
@@ -82,7 +101,7 @@ Wszystkie jak w PWA. „Arkusze” (okna od dołu) zamykane tylko ✕ / „Anulu
 | Zadzwoń do klienta, udostępnij obrazek rezerwacji | ✅ |
 | Wynajem i zadania — podgląd | ✅ ostatni pobrany stan |
 | Rozpiski dnia (Arsenał) — podgląd i PDF | ✅ z zapisanych rezerwacji |
-| Dodawanie / edycja / zadatek / potwierdzenie / usuwanie | ⏳ **do ustalenia** (pytanie 2) |
+| Dodawanie / edycja / zadatek / potwierdzenie / usuwanie | ❌ tylko z internetem (internet w telefonach jest zawsze; dane w formularzu zostają przy błędzie) |
 | Maile do klienta, logowanie, zmiana hasła, ustawienia admina | ❌ tylko z internetem (jasny komunikat, dane w formularzu zostają) |
 | Zgłoszenia błędów | ✅ zapisują się w telefonie i wysyłają przy zasięgu |
 
@@ -111,8 +130,8 @@ oba mogą być używane równolegle). Korzysta z tego samego `config.php` i bazy
 9. **Ustawienia aplikacji:** `OTHER_COLOR`, logo marki i lista sprzętu do wynajmu w odpowiedzi `ja` / `formdata`
    (dziś wpisane w `kalendarz.php`).
 10. Reszta akcji — przeniesiona 1:1 z `api.php` (dodaj, edytuj, usuń, zadatek, status, oba maile, wynajem, zadania,
-    użytkownicy, SMS, zmiana hasła). Szablony maili: wydzielone do wspólnego pliku `rezerwacjaapp/lib/maile.php`,
-    z którego korzysta też `api.php` (PWA wysyła dokładnie te same maile — jedyna zmiana w PWA).
+    użytkownicy, SMS, zmiana hasła). Szablony maili skopiowane do nowego API (PWA bez zmian).
+11. **Push:** `zarejestruj_push` (token Expo telefonu) + wysyłka przez Expo Push z crona przy nowej rezerwacji z www.
 
 Nowe tabele jako pliki `server/sql/NNN_*.sql` (wgrywane ręcznie w phpMyAdmin), starych nie zmieniamy.
 
@@ -166,8 +185,9 @@ Nowe tabele jako pliki `server/sql/NNN_*.sql` (wgrywane ręcznie w phpMyAdmin), 
 - [ ] Pasek „📥 Jest nowa wersja aplikacji”, blokada starej wersji.
 - [ ] Pierwszy APK — test na telefonach obok PWA (Ty).
 
+- [ ] Odświeżanie w tle (expo-background-task) i powiadomienia push o nowej rezerwacji z www (nowy APK).
+
 ### Na później (po uzgodnieniu)
-- Powiadomienia push o nowej rezerwacji z www (wymaga nowego APK i projektu Firebase do powiadomień).
 - Przeciąganie rezerwacji na inną godzinę/dzień.
 
 ## Pytania do Michała (tego nie da się wyczytać z kodu)
@@ -182,4 +202,5 @@ Nowe tabele jako pliki `server/sql/NNN_*.sql` (wgrywane ręcznie w phpMyAdmin), 
    i zmieniamy hasło do bazy.
 
 ## Stan
-- 02.10: przeczytana paczka PWA i repo SILT Lista, plan gotowy. Czekam na odpowiedzi i repo.
+- 02.10: przeczytana paczka PWA i repo SILT Lista, plan gotowy, odpowiedzi Michała wpisane.
+  Czekam na: repo + EXPO_TOKEN, strukturę bazy, decyzję w sprawie iPhone'a.
