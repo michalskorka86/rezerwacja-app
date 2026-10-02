@@ -20,6 +20,7 @@
 //   POST zmien_haslo {stare, nowe}
 //   GET  uzytkownicy_admin | sms_ustawienia            (admin)
 //   POST uzytkownik_dodaj | haslo_reset | uzytkownik_aktywny | sms_ustawienia_zapisz   (admin)
+//   POST push_zarejestruj {token}                      → adres powiadomień tego telefonu
 //   POST blad {ekran, komunikat, stos}                 → zgłoszenie błędu (także bez logowania)
 //
 // Nagłówki: X-Token (po zalogowaniu), X-App-Wersja (zawsze). Treść POST: JSON.
@@ -36,6 +37,7 @@ require_once __DIR__ . '/lib/rezerwacje.php';
 require_once __DIR__ . '/lib/wynajem.php';
 require_once __DIR__ . '/lib/konto.php';
 require_once __DIR__ . '/lib/bledy.php';
+require_once __DIR__ . '/lib/push.php';
 
 // Wersja www aplikacji (np. na iPhonie) działa z innego adresu — dostęp tylko tokenem, bez ciasteczek.
 header('Access-Control-Allow-Origin: *');
@@ -80,6 +82,7 @@ $zapis = [
     'haslo_reset' => 'akcja_haslo_reset',
     'uzytkownik_aktywny' => 'akcja_uzytkownik_aktywny',
     'sms_ustawienia_zapisz' => 'akcja_sms_ustawienia_zapisz',
+    'push_zarejestruj' => 'akcja_push_zarejestruj',
 ];
 
 try {

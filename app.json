@@ -15,7 +15,8 @@
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "googleServicesFile": "./google-services.json"
     },
     "ios": {
       "bundleIdentifier": "pl.silt.rezerwacje",
@@ -39,7 +40,15 @@
         }
       ],
       "expo-sharing",
-      "expo-background-task"
+      "expo-background-task",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/powiadomienie.png",
+          "color": "#2C6E3F",
+          "defaultChannel": "rezerwacje"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

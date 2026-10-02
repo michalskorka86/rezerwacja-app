@@ -190,7 +190,7 @@ Nowe tabele jako pliki `server/sql/NNN_*.sql` (wgrywane ręcznie w phpMyAdmin), 
 - [x] Pierwszy APK — test na telefonach obok PWA (Ty).
 
 - [x] Odświeżanie w tle (expo-background-task) (02.10).
-- [ ] Powiadomienia push o nowej rezerwacji z www (nowy APK).
+- [x] Powiadomienia push (02.10) o nowej rezerwacji z www (nowy APK).
 
 ### Na później (po uzgodnieniu)
 - Przeciąganie rezerwacji na inną godzinę/dzień.
@@ -226,3 +226,9 @@ Nowe tabele jako pliki `server/sql/NNN_*.sql` (wgrywane ręcznie w phpMyAdmin), 
   pdf_dzien.php, liczone z zapisanych rezerwacji — także bez zasięgu). Bez nowego APK (expo-print był w apk-2).
   Wybory w formularzach (rola, marka, lokalizacja) jako duże przyciski zamiast rozwijanych list.
   Zostało: powiadomienia push (nowy APK + Firebase), iPhone na koniec.
+- 02.10: etap 5 — powiadomienia push. Firebase: projekt „Rezerwacje SILT” (rezerwacje-silt), aplikacja Android
+  pl.silt.rezerwacje; google-services.json jako sekret GitHuba GOOGLE_SERVICES_JSON (workflow zapisuje go przed
+  budowaniem i aktualizacją, .easignore przepuszcza go do buildu); klucz konta usługi wgrany na expo.dev (FCM V1).
+  Serwer: lib/push.php, akcja push_zarejestruj, cron.php wysyła push o nowej rezerwacji z www (ostatnie 2 h, raz,
+  do telefonów tej samej marki), sql/002_push.sql. Aplikacja: expo-notifications (NOWY MODUŁ → nowy APK),
+  kanał „Nowe rezerwacje”, dotknięcie otwiera szczegóły rezerwacji.

@@ -7,7 +7,7 @@ bazy i z `config.php` PWA, ale **żadnego pliku PWA nie zmienia**. PWA działa d
 
 1. **Nowe tabele w bazie.** phpMyAdmin → baza `serwer432573_siltrezerwacje` → **Import** → plik `sql/001_aplikacja.sql`
    → „Import”. Powstaną 3 tabele z przedrostkiem `app_` (logowania telefonów, błędne hasła, zgłoszenia błędów).
-   Tabele PWA zostają bez zmian.
+   Potem tak samo `sql/002_push.sql` (znacznik wysłanych powiadomień push). Tabele PWA zostają bez zmian.
 2. **Folder na serwerze.** Przez FTP utwórz folder `rezerwacjaapp/aplikacja-api/` i wgraj do niego:
    - `api.php`, `apk.php`, `bledy.php`, `cron.php`, `config.example.php`, `.htaccess`
    - cały folder `lib/` (razem z jego `.htaccess`)
@@ -20,6 +20,8 @@ bazy i z `config.php` PWA, ale **żadnego pliku PWA nie zmienia**. PWA działa d
    (albo adres: `https://filedops.pl/rezerwacjaapp/aplikacja-api/cron.php?key=CRON_KEY`).
    Wysyła SMS-y o nowych rezerwacjach z formularza www — także wtedy, gdy nikt nie ma otwartego PWA.
    PWA dalej wysyła je po swojemu; znacznik w bazie pilnuje, żeby SMS nie poszedł dwa razy.
+   Ten sam cron wysyła powiadomienia push „🆕 Nowa rezerwacja z www” na telefony zespołu tej marki
+   (przez Expo Push; klucz Firebase jest na expo.dev, na serwerze nie ma żadnego klucza).
 5. **Sprawdzenie.** Otwórz `https://filedops.pl/rezerwacjaapp/aplikacja-api/api.php?akcja=ja` — ma się pokazać
    `{"ok":false,"kod":"zaloguj","msg":"Zaloguj się"}`. To znaczy, że API działa (i słusznie prosi o logowanie).
 

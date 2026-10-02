@@ -23,6 +23,7 @@ if (!defined('WA_PHONE'))       define('WA_PHONE', '');
 if (!defined('CRON_KEY'))       define('CRON_KEY', '');
 if (!defined('APK_REPO'))       define('APK_REPO', 'michalskorka86/rezerwacja-app');
 if (!defined('APK_BAZA_URL'))   define('APK_BAZA_URL', 'https://github.com/' . APK_REPO . '/releases/latest/download/');
+if (!defined('EXPO_PUSH_URL'))  define('EXPO_PUSH_URL', 'https://exp.host/--/api/v2/push/send');
 if (!defined('APK_PLIK'))       define('APK_PLIK', 'rezerwacje.apk');
 if (!defined('PHPMAILER_DIR'))  define('PHPMAILER_DIR', dirname(__DIR__, 2) . '/phpmailer');
 if (!defined('MAIL_DO_PLIKU'))  define('MAIL_DO_PLIKU', '');   // tylko testy: maile zapisywane do folderu zamiast wysyłki

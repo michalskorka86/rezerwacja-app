@@ -23,6 +23,7 @@ import type { TrybFormularza } from '@/logika/formularz';
 import { dniHarmonogramu, FILTRY, filtruj } from '@/logika/kalendarz';
 import type { Filtr, Rezerwacja } from '@/logika/typy';
 import { useDane } from '@/stan/DaneProvider';
+import { sluchajDotkniec } from '@/stan/push';
 import { ustawEkran } from '@/stan/zglos';
 
 type Okno = null | 'wynajem' | 'zadania' | 'ustawienia' | 'rozpiski' | 'haslo';
@@ -77,6 +78,26 @@ export default function Kalendarz() {
   }, [dni.length, dzis, filtr, widok]);
 
   const naRezerwacje = useCallback((r: Rezerwacja) => setWybrana(r), []);
+
+  // dotknięte powiadomienie „🆕 Nowa rezerwacja z www” → świeże dane i szczegóły tej rezerwacji
+  const [zPowiadomienia, setZPowiadomienia] = useState<number | null>(null);
+  const { odswiez } = dane;
+  useEffect(
+    () =>
+      sluchajDotkniec((r) => {
+        setZPowiadomienia(r.id);
+        odswiez(true);
+      }),
+    [odswiez],
+  );
+  if (zPowiadomienia !== null) {
+    const r = dane.rezerwacje.find((x) => x.id === zPowiadomienia);
+    if (r) {
+      setZPowiadomienia(null);
+      setOkno(null);
+      setWybrana(r);
+    }
+  }
 
   const naDzisiaj = () => {
     if (widok === 'miesiac') return setMiesiacWidoku(miesiac(dzis));

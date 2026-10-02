@@ -5,7 +5,7 @@
 #   https://filedops.pl/rezerwacjaapp/aplikacja-api/apk.php
 # i same widzą „📥 Jest nowa wersja aplikacji”, gdy APK ma nowe moduły systemowe.
 # Podpis z konta Expo (ten sam przy każdym APK), więc nowy APK instaluje się na starą aplikację bez utraty logowania.
-# Wymaga sekretu EXPO_TOKEN.
+# Wymaga sekretów EXPO_TOKEN i GOOGLE_SERVICES_JSON (plik z Firebase — ten sam odcisk modułów w APK i aktualizacjach).
 name: Buduj APK (szybko)
 on:
   push:
@@ -40,6 +40,13 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
       - run: npm ci
+      - name: google-services.json z sekretu (nie trafia do repozytorium)
+        env:
+          GS: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -z "$GS" ]; then echo "Brak sekretu GOOGLE_SERVICES_JSON (Firebase) — patrz docs/PLAN.md"; exit 1; fi
+          printf '%s' "$GS" > google-services.json
+          node -e 'JSON.parse(require("fs").readFileSync("google-services.json","utf8")); console.log("google-services.json OK")'
       - name: Zbuduj APK (na GitHubie, klucz podpisu z Expo)
         env:
           GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx4g

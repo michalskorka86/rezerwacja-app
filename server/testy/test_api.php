@@ -66,6 +66,13 @@ function smsy(): array
     return is_file($p) ? (json_decode((string)file_get_contents($p), true) ?: []) : [];
 }
 
+function pushe(): array
+{
+    global $MOCK;
+    $p = $MOCK . '/push.json';
+    return is_file($p) ? (json_decode((string)file_get_contents($p), true) ?: []) : [];
+}
+
 function jako(string $t): void
 {
     global $token;
@@ -74,11 +81,12 @@ function jako(string $t): void
 
 // ── Dane testowe (czysta baza) ──────────────────────────────
 $pdo->exec('SET FOREIGN_KEY_CHECKS = 0');
-foreach (['logi_maili', 'rezerwacje', 'wynajmy', 'zadania', 'uzytkownicy', 'atrakcje', 'dodatki', 'ustawienia', 'app_tokeny', 'app_logowania_bledne', 'app_bledy'] as $t) {
+foreach (['logi_maili', 'rezerwacje', 'wynajmy', 'zadania', 'uzytkownicy', 'atrakcje', 'dodatki', 'ustawienia', 'app_tokeny', 'app_logowania_bledne', 'app_bledy', 'app_push_wyslane'] as $t) {
     $pdo->exec("TRUNCATE TABLE `$t`");
 }
 $pdo->exec('SET FOREIGN_KEY_CHECKS = 1');
 @unlink($MOCK . '/sms.json');
+@unlink($MOCK . '/push.json');
 foreach (glob($MOCK . '/mail-*.html') ?: [] as $f) unlink($f);
 
 $pdo->exec("INSERT INTO atrakcje (id, nazwa, kolor, aktywna, kolejnosc) VALUES
@@ -380,6 +388,17 @@ $r = api('sms_ustawienia_zapisz', ['sms_silt' => false, 'sms_arsenal' => true, '
 $r = api('sms_ustawienia');
 sprawdz('zapisane', ($r['ustawienia'] ?? null) === ['sms_silt' => false, 'sms_arsenal' => true, 'sms_wynajem' => false], $r);
 
+// ── Push: rejestracja telefonów ─────────────────────────────
+echo "Push\n";
+jako($tPawel);
+$r = api('push_zarejestruj', ['token' => 'nie-token']);
+sprawdz('push: zły token odrzucony', $r['_http'] === 400, $r);
+$r = api('push_zarejestruj', ['token' => 'ExponentPushToken[pawel-1]']);
+sprawdz('push: telefon Pawła zapisany', ($r['ok'] ?? false) === true, $r);
+jako($tMichal);
+$r = api('push_zarejestruj', ['token' => 'ExponentPushToken[michal-1]']);
+$pdo->exec("INSERT INTO app_tokeny (uzytkownik_id, token_hash, urzadzenie, push_token, utworzony, ostatnio) VALUES (2, REPEAT('a', 64), 'stary', 'ExponentPushToken[Zly-arsenal]', NOW(), NOW())");
+
 // ── Cron: SMS o rezerwacjach z www ──────────────────────────
 echo "Cron\n";
 $smsPrzed = count(smsy());
@@ -394,6 +413,16 @@ $flagi = $pdo->query("SELECT COUNT(*) FROM rezerwacje WHERE zrodlo = 'formularz_
 sprawdz('wszystkie nowe z www oznaczone jako wysłane', (int)$flagi === 0);
 [$kod, $res] = zapytanie($BAZA . '/cron.php?key=cron-test', null, []);
 sprawdz('drugi raz nic nie wysyła', count(smsy()) === $smsPrzed + 1 && (json_decode($res, true)['sms']['wyslane'] ?? -1) === 0, $res);
+$p = pushe();
+$doPawla = array_values(array_filter($p, fn ($w) => $w['to'] === 'ExponentPushToken[pawel-1]'));
+sprawdz('push: o nowej z www Arsenału tylko do telefonów Arsenału', count($doPawla) >= 1
+    && !array_filter($p, fn ($w) => $w['to'] === 'ExponentPushToken[michal-1]' && strpos($w['title'], 'Rembertów') !== false)
+    && strpos($doPawla[0]['title'], 'Nowa rezerwacja z www') !== false && ($doPawla[0]['channelId'] ?? '') === 'rezerwacje', $p);
+sprawdz('push: niezainstalowana aplikacja — token wyczyszczony',
+    (int)$pdo->query("SELECT COUNT(*) FROM app_tokeny WHERE push_token LIKE '%Zly%'")->fetchColumn() === 0);
+$ile = count(pushe());
+zapytanie($BAZA . '/cron.php?key=cron-test', null, []);
+sprawdz('push: drugi raz nic nie wysyła', count(pushe()) === $ile);
 
 // ── Błędy, APK, wylogowanie ─────────────────────────────────
 echo "Błędy, APK, wylogowanie\n";

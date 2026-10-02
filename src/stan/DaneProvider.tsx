@@ -10,6 +10,7 @@ import { podmienRezerwacje, pobierzZSerwera, PUSTY_STAN, wczytajZPamieci, type D
 import type { Filtr, Rezerwacja } from '@/logika/typy';
 
 import { klient, ustawWylogowanie } from './klient';
+import { sluchajPowiadomien, zapomnijPush, zarejestrujPush } from './push';
 import { idUrzadzenia, MODEL, token, ustawToken } from './sesja';
 import { zarejestrujOdswiezanieWTle } from './zadanieTla';
 import { zglos } from './zglos';
@@ -81,6 +82,7 @@ export function DaneProvider({ children }: { children: ReactNode }) {
 
   const wylogujLokalnie = useCallback(async () => {
     await ustawToken(null);
+    zapomnijPush();
     await wyczyscPamiec(db);
     setStan(PUSTY_STAN);
     setNiedoszle(null);
@@ -148,6 +150,7 @@ export function DaneProvider({ children }: { children: ReactNode }) {
       setZalogowany(true);
       odswiez(true);
       zarejestrujOdswiezanieWTle();
+      zarejestrujPush();
     })();
     return () => {
       aktywny = false;
@@ -171,6 +174,12 @@ export function DaneProvider({ children }: { children: ReactNode }) {
       sub.remove();
       if (zegar) clearInterval(zegar);
     };
+  }, [zalogowany, odswiez]);
+
+  // Powiadomienie o nowej rezerwacji przy otwartej aplikacji → od razu świeże dane.
+  useEffect(() => {
+    if (!zalogowany) return;
+    return sluchajPowiadomien(() => void odswiez());
   }, [zalogowany, odswiez]);
 
   // „⚠ Niedoszłe” — osobna lista z serwera, gdy ten filtr jest wybrany
@@ -208,6 +217,7 @@ export function DaneProvider({ children }: { children: ReactNode }) {
       }
       setZalogowany(true);
       zarejestrujOdswiezanieWTle();
+      zarejestrujPush();
     },
     [odswiez],
   );

@@ -3,7 +3,7 @@
 #  - albo ręcznie: Actions → „Wyślij aktualizację” → Run workflow.
 # Telefony pobierają ją same (przy starcie / po powrocie do aplikacji po 10 min).
 # Dochodzi tylko do APK z tymi samymi modułami systemowymi — gdy doszedł nowy moduł, potrzebny nowy APK („[apk]”).
-# Wymaga sekretu EXPO_TOKEN.
+# Wymaga sekretów EXPO_TOKEN i GOOGLE_SERVICES_JSON (plik z Firebase — ten sam odcisk modułów w APK i aktualizacjach).
 name: Wyślij aktualizację
 on:
   push:
@@ -29,6 +29,13 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
       - run: npm ci
+      - name: google-services.json z sekretu (nie trafia do repozytorium)
+        env:
+          GS: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -z "$GS" ]; then echo "Brak sekretu GOOGLE_SERVICES_JSON (Firebase) — patrz docs/PLAN.md"; exit 1; fi
+          printf '%s' "$GS" > google-services.json
+          node -e 'JSON.parse(require("fs").readFileSync("google-services.json","utf8")); console.log("google-services.json OK")'
       - name: Wyślij do EAS Update (kanał preview = APK z GitHuba)
         env:
           OPIS: ${{ inputs.opis }}
