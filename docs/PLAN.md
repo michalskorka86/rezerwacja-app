@@ -38,7 +38,9 @@ APK z Releases, aktualizacje „w powietrzu”, zgłaszanie błędów.
 APK nie zainstaluje się na iPhonie, a aplikacja na iPhone'a bez App Store wymaga płatnego konta Apple (99 USD/rok).
 Opcje: (a) iPhone zostaje na obecnym PWA (działa dalej, nic nie tracimy); (b) ta sama aplikacja wydana jako strona www
 (Expo umie zbudować wersję web z tego samego kodu) i dodana do ekranu początkowego iPhone'a — wygląd i funkcje jak w APK,
-push na iPhonie działa dla strony dodanej do ekranu; (c) konto Apple + TestFlight. Decyzja Michała: ⏳
+push na iPhonie działa dla strony dodanej do ekranu; (c) konto Apple + TestFlight. **Decyzja Michała (02.10): (c) — płatne konto Apple** (iPhone szefa).
+Plan: Apple Developer Program (99 USD/rok) → budowanie wersji na iPhone'a na GitHubie (maszyny macOS są darmowe
+dla publicznego repo, bez kolejki Expo) → instalacja przez TestFlight. Poprawki JS przez EAS Update jak na Androidzie.
 
 ## Co jest w PWA (przeczytane z paczki)
 
