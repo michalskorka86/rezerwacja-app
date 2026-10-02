@@ -173,7 +173,7 @@ Nowe tabele jako pliki `server/sql/NNN_*.sql` (wgrywane ręcznie w phpMyAdmin), 
 - [x] Pamięć w telefonie (SQLite) + odświeżanie: start, powrót, co 30 s, w tle; pasek „Brak połączenia — dane z godz.” (02.10).
 - [x] Kalendarz: Tydzień, pasek dni, legenda, filtr (z licznikiem nowych), szukanie, święta dla każdego roku + Wigilia od 2025 (02.10).
 - [x] Szczegóły rezerwacji + akcje: zadatek, potwierdzenie, oba maile, usuń, zadzwoń, 📤 obrazek do udostępnienia (02.10).
-- [ ] Formularz dodaj / edytuj / kopiuj, klawiatura liczb, okna daty i godziny, dodatki.
+- [x] Formularz dodaj / edytuj / kopiuj, klawiatura liczb, okna daty i godziny, dodatki; Arsenał: wybór lokalizacji; „Zamknąć bez zapisywania?” (02.10).
 - [x] Dzień i Miesiąc (02.10).
 
 ### 3. Pozostałe moduły (Claude)
@@ -209,6 +209,7 @@ Nowe tabele jako pliki `server/sql/NNN_*.sql` (wgrywane ręcznie w phpMyAdmin), 
 - 02.10: przeczytana paczka PWA i repo SILT Lista, plan gotowy, odpowiedzi Michała wpisane.
 - 02.10: etap 1 (serwer) wgrany na filedops.pl i działa (sprawdzone przez Michała).
 - 02.10: etap 2a — pierwszy APK (wydanie apk-2): logowanie, kalendarz Tydzień/Miesiąc/Dzień, szczegóły z akcjami.
-  Wynajem, Zadania, Ustawienia, formularz rezerwacji i rozpiski — okna „w budowie”, następne etapy.
+  Wynajem, Zadania, Ustawienia i rozpiski — okna „w budowie”, następne etapy.
+- 02.10: etap 2b — formularz rezerwacji (dodaj / edytuj / kopiuj), wysłany aktualizacją w powietrzu.
   Projekt Expo: michal198926s-team/rezerwacja-app.
   iPhone (konto Apple) — na koniec, gdy aplikacja będzie gotowa (decyzja Michała).

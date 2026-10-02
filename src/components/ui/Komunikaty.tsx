@@ -1,22 +1,8 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
-import {
-  Animated,
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from 'react';
+import { Animated, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { C, cien, Fonts, Size } from "@/constants/theme";
+import { C, cien, Fonts, Size } from '@/constants/theme';
 
 type Pytanie = {
   tytul: string;
@@ -49,7 +35,7 @@ const Warstwa = createContext<{
   tekst: string;
   op: Animated.Value | null;
   blad: string | null;
-}>({ tekst: "", op: null, blad: null });
+}>({ tekst: '', op: null, blad: null });
 
 /**
  * Toast i pasek błędu. Jest w głównym oknie i w każdym arkuszu — inaczej komunikat chowałby się pod otwartym arkuszem.
@@ -61,17 +47,11 @@ export function WarstwaKomunikatow() {
   return (
     <>
       {blad ? (
-        <View
-          pointerEvents="none"
-          style={[styles.bladWrap, { bottom: 80 + insets.bottom }]}
-        >
+        <View pointerEvents="none" style={[styles.bladWrap, { bottom: 80 + insets.bottom }]}>
           <Text style={styles.blad}>{blad}</Text>
         </View>
       ) : null}
-      <View
-        pointerEvents="none"
-        style={[styles.toastWrap, { bottom: 90 + insets.bottom }]}
-      >
+      <View pointerEvents="none" style={[styles.toastWrap, { bottom: 90 + insets.bottom }]}>
         <Animated.View style={[styles.toast, { opacity: op }]}>
           <Text style={styles.toastTxt}>{tekst}</Text>
         </Animated.View>
@@ -81,7 +61,7 @@ export function WarstwaKomunikatow() {
 }
 
 export function KomunikatyProvider({ children }: { children: ReactNode }) {
-  const [tekst, setTekst] = useState("");
+  const [tekst, setTekst] = useState('');
   const [pytanie, setPytanie] = useState<Pytanie | null>(null);
   const [blad, setBlad] = useState<string | null>(null);
   const [op] = useState(() => new Animated.Value(0));
@@ -110,57 +90,42 @@ export function KomunikatyProvider({ children }: { children: ReactNode }) {
   );
 
   return (
-    <Kontekst.Provider
-      value={{ toast, zapytaj: setPytanie, pasekBledu: setBlad }}
-    >
+    <Kontekst.Provider value={{ toast, zapytaj: setPytanie, pasekBledu: setBlad }}>
       <Warstwa.Provider value={{ tekst, op, blad }}>
         {children}
-        <Modal
-          visible={!!pytanie}
-          transparent
-          animationType="fade"
-          onRequestClose={() => setPytanie(null)}
-          statusBarTranslucent
-        >
-          <Pressable style={styles.tlo} onPress={() => setPytanie(null)}>
-            <Pressable style={styles.okno} onPress={() => {}}>
-              <Text style={styles.tytul}>{pytanie?.tytul}</Text>
-              {pytanie?.tekst ? (
-                <Text style={styles.tekst}>{pytanie.tekst}</Text>
-              ) : null}
-              <View style={styles.przyciski}>
-                <Pressable
-                  onPress={() => setPytanie(null)}
-                  style={({ pressed }) => [
-                    styles.btn,
-                    styles.anuluj,
-                    pressed && styles.wcisniety,
-                  ]}
-                >
-                  <Text style={[styles.btnTxt, { color: C.text }]}>Anuluj</Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => {
-                    const f = pytanie?.onOk;
-                    setPytanie(null);
-                    f?.();
-                  }}
-                  style={({ pressed }) => [
-                    styles.btn,
-                    {
-                      backgroundColor: pytanie?.niebezpieczne ? C.red : C.text,
-                    },
-                    pressed && styles.wcisniety,
-                  ]}
-                >
-                  <Text style={[styles.btnTxt, { color: "#fff" }]}>
-                    {pytanie?.ok}
-                  </Text>
-                </Pressable>
-              </View>
+        {/* tworzone dopiero przy pytaniu — wtedy zawsze NAD otwartymi arkuszami */}
+        {pytanie ? (
+          <Modal visible transparent animationType="fade" onRequestClose={() => setPytanie(null)} statusBarTranslucent>
+            <Pressable style={styles.tlo} onPress={() => setPytanie(null)}>
+              <Pressable style={styles.okno} onPress={() => {}}>
+                <Text style={styles.tytul}>{pytanie?.tytul}</Text>
+                {pytanie?.tekst ? <Text style={styles.tekst}>{pytanie.tekst}</Text> : null}
+                <View style={styles.przyciski}>
+                  <Pressable
+                    onPress={() => setPytanie(null)}
+                    style={({ pressed }) => [styles.btn, styles.anuluj, pressed && styles.wcisniety]}>
+                    <Text style={[styles.btnTxt, { color: C.text }]}>Anuluj</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => {
+                      const f = pytanie?.onOk;
+                      setPytanie(null);
+                      f?.();
+                    }}
+                    style={({ pressed }) => [
+                      styles.btn,
+                      {
+                        backgroundColor: pytanie?.niebezpieczne ? C.red : C.text,
+                      },
+                      pressed && styles.wcisniety,
+                    ]}>
+                    <Text style={[styles.btnTxt, { color: '#fff' }]}>{pytanie?.ok}</Text>
+                  </Pressable>
+                </View>
+              </Pressable>
             </Pressable>
-          </Pressable>
-        </Modal>
+          </Modal>
+        ) : null}
         <WarstwaKomunikatow />
       </Warstwa.Provider>
     </Kontekst.Provider>
@@ -170,13 +135,13 @@ export function KomunikatyProvider({ children }: { children: ReactNode }) {
 const styles = StyleSheet.create({
   tlo: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.35)",
-    alignItems: "center",
-    justifyContent: "center",
+    backgroundColor: 'rgba(0,0,0,0.35)',
+    alignItems: 'center',
+    justifyContent: 'center',
     padding: 24,
   },
   okno: {
-    width: "100%",
+    width: '100%',
     maxWidth: 380,
     backgroundColor: C.surface,
     borderRadius: Size.radius,
@@ -196,23 +161,23 @@ const styles = StyleSheet.create({
     marginTop: 8,
     lineHeight: 20,
   },
-  przyciski: { flexDirection: "row", gap: 10, marginTop: 20 },
+  przyciski: { flexDirection: 'row', gap: 10, marginTop: 20 },
   btn: {
     flex: 1,
     minHeight: 50,
     borderRadius: Size.rs,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingHorizontal: 10,
   },
   anuluj: { backgroundColor: C.bg, borderWidth: 1.5, borderColor: C.border },
-  btnTxt: { fontFamily: Fonts.semibold, fontSize: 15, textAlign: "center" },
+  btnTxt: { fontFamily: Fonts.semibold, fontSize: 15, textAlign: 'center' },
   wcisniety: { opacity: 0.75 },
   toastWrap: {
-    position: "absolute",
+    position: 'absolute',
     left: 16,
     right: 16,
-    alignItems: "center",
+    alignItems: 'center',
   },
   toast: {
     backgroundColor: C.text,
@@ -221,23 +186,23 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   toastTxt: {
-    color: "#fff",
+    color: '#fff',
     fontFamily: Fonts.medium,
     fontSize: 13,
-    textAlign: "center",
+    textAlign: 'center',
   },
-  bladWrap: { position: "absolute", left: 16, right: 16, alignItems: "center" },
+  bladWrap: { position: 'absolute', left: 16, right: 16, alignItems: 'center' },
   blad: {
-    backgroundColor: "#b71c1c",
-    color: "#fff",
+    backgroundColor: '#b71c1c',
+    color: '#fff',
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 8,
     fontSize: 13,
     fontFamily: Fonts.medium,
-    textAlign: "center",
+    textAlign: 'center',
     maxWidth: 360,
-    overflow: "hidden",
+    overflow: 'hidden',
     ...cien(2),
   },
 });

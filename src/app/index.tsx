@@ -3,6 +3,7 @@ import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PasekNowejWersji } from '@/components/Aktualizacje';
+import { FormularzRezerwacji } from '@/components/formularz/FormularzRezerwacji';
 import { GornyPasek, type Widok } from '@/components/kalendarz/GornyPasek';
 import { Harmonogram, type HarmonogramRef } from '@/components/kalendarz/Harmonogram';
 import { Legenda, PasekDni } from '@/components/kalendarz/PasekDni';
@@ -15,12 +16,13 @@ import { WBudowie } from '@/components/WBudowie';
 import { ZmianaHasla } from '@/components/ZmianaHasla';
 import { C, cien, Fonts, Size } from '@/constants/theme';
 import { dzisStr, miesiac } from '@/logika/daty';
+import type { TrybFormularza } from '@/logika/formularz';
 import { dniHarmonogramu, FILTRY, filtruj } from '@/logika/kalendarz';
 import type { Filtr, Rezerwacja } from '@/logika/typy';
 import { useDane } from '@/stan/DaneProvider';
 import { ustawEkran } from '@/stan/zglos';
 
-type Okno = null | 'wynajem' | 'zadania' | 'ustawienia' | 'dodaj' | 'rozpiski' | 'haslo';
+type Okno = null | 'wynajem' | 'zadania' | 'ustawienia' | 'rozpiski' | 'haslo';
 
 /** Ekran główny — kalendarz rezerwacji (kalendarz.php z PWA). */
 export default function Kalendarz() {
@@ -39,6 +41,8 @@ export default function Kalendarz() {
   const [menuFiltra, setMenuFiltra] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const [wybrana, setWybrana] = useState<Rezerwacja | null>(null);
   const [okno, setOkno] = useState<Okno>(null);
+  const [formularz, setFormularz] = useState<{ tryb: TrybFormularza; nr: number } | null>(null);
+  const otworzFormularz = (tryb: TrybFormularza) => setFormularz((f) => ({ tryb, nr: (f?.nr ?? 0) + 1 }));
 
   const uzytkownik = konto?.uzytkownik;
   const ustawienia = konto?.ustawienia;
@@ -180,7 +184,7 @@ export default function Kalendarz() {
 
       {uzytkownik.rola !== 'podglad' ? (
         <View style={[styles.fabWrap, { bottom: 20 + insets.bottom }]} pointerEvents="box-none">
-          <Pressable onPress={() => setOkno('dodaj')} style={({ pressed }) => [styles.fab, pressed && { opacity: 0.85 }]} accessibilityRole="button">
+          <Pressable onPress={() => otworzFormularz({ rodzaj: 'nowa' })} style={({ pressed }) => [styles.fab, pressed && { opacity: 0.85 }]} accessibilityRole="button">
             <Text style={styles.fabTxt}>＋ Dodaj rezerwację</Text>
           </Pressable>
         </View>
@@ -234,15 +238,33 @@ export default function Kalendarz() {
       <SzczegolyRezerwacji
         r={wybrana ? (dane.rezerwacje.find((x) => x.id === wybrana.id) ?? niedoszle?.find((x) => x.id === wybrana.id) ?? wybrana) : null}
         onZamknij={() => setWybrana(null)}
-        onEdytuj={() => {
+        onEdytuj={(r) => {
           setWybrana(null);
-          setTimeout(() => setOkno('dodaj'), 250);
+          setTimeout(() => otworzFormularz({ rodzaj: 'edycja', r }), 250);
         }}
-        onKopiuj={() => {
+        onKopiuj={(r) => {
           setWybrana(null);
-          setTimeout(() => setOkno('dodaj'), 250);
+          setTimeout(() => {
+            otworzFormularz({ rodzaj: 'kopia', r });
+            toast('📋 Dane skopiowane — wybierz nową datę');
+          }, 250);
         }}
       />
+
+      {formularz ? (
+        <FormularzRezerwacji
+          key={formularz.nr}
+          tryb={formularz.tryb}
+          onZamknij={() => setFormularz(null)}
+          onZapisano={(r, nowa) => {
+            setFormularz(null);
+            dane.zastosuj(r);
+            toast(nowa ? '✅ Rezerwacja dodana!' : '✅ Zmiany zapisane!');
+            if (widok === 'tydzien') setTimeout(() => harmonogram.current?.przewinDo(r.data_rezerwacji), 300);
+            dane.odswiez();
+          }}
+        />
+      ) : null}
 
       <Arkusz widoczny={okno === 'wynajem'} onZamknij={() => setOkno(null)} tytul="📦 Wynajem sprzętu" nazwa="wynajem" wysokosc={0.98}>
         <WBudowie co="Wynajem sprzętu" />
@@ -252,9 +274,6 @@ export default function Kalendarz() {
       </Arkusz>
       <Arkusz widoczny={okno === 'ustawienia'} onZamknij={() => setOkno(null)} tytul="⚙️ Ustawienia" nazwa="ustawienia" wysokosc={0.98}>
         <WBudowie co="Ustawienia" />
-      </Arkusz>
-      <Arkusz widoczny={okno === 'dodaj'} onZamknij={() => setOkno(null)} tytul="Nowa rezerwacja" nazwa="formularz">
-        <WBudowie co="Dodawanie i edycja rezerwacji" />
       </Arkusz>
       <Arkusz widoczny={okno === 'rozpiski'} onZamknij={() => setOkno(null)} tytul="📄 Rozpiski dnia" nazwa="rozpiski">
         <WBudowie co="Rozpiski" />
