@@ -1,0 +1,31 @@
+# zależności i pliki budowania
+node_modules/
+.expo/
+dist/
+web-build/
+android/
+ios/
+*.apk
+*.aab
+expo-env.d.ts
+
+# sekrety — NIGDY do repozytorium
+.env
+.env.*
+!.env.example
+config.php
+*.keystore
+*.jks
+credentials.json
+google-services.json
+GoogleService-Info.plist
+
+# dane i zrzuty baz
+*.dump
+dump*.sql
+backup*/
+
+# systemowe
+.DS_Store
+Thumbs.db
+*.log

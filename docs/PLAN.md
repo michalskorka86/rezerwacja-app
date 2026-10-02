@@ -121,7 +121,8 @@ oba mogą być używane równolegle). Korzysta z tego samego `config.php` i bazy
    W nowym API naprawione; w PWA mogę poprawić jedną linijką (jeśli chcesz).
 4. **Licznik nowych bez wysyłania SMS:** `count_new` przy okazji wysyła SMS-y o nowych rezerwacjach z www — czyli SMS idzie
    tylko wtedy, gdy ktoś ma otwarte PWA. Propozycja: osobny `cron.php` (co 5 min) wysyła te SMS-y; licznik tylko liczy.
-5. **Rozpiski jako dane** (`rozpiska?data=&lok=`) — logika liczenia sprzętu przeniesiona z `pdf_dzien.php`.
+5. **Rozpiski** — liczone w telefonie z pobranych rezerwacji (port `oblicz_sprzet()` z `pdf_dzien.php`, test w Node),
+   więc działają też bez zasięgu; serwer nie potrzebuje nowej akcji.
 6. **Zgłaszanie błędów:** `zglos_blad` + tabela `bledy` + `bledy.php?key=…` (podgląd jak w SILT Lista).
 7. **APK:** `apk.php` (pobranie najnowszego APK z Releases) i `apk.php?info` (dla paska „Jest nowa wersja”).
    Do tego `min_wersja_app` w tabeli `ustawienia` (blokada starej wersji).
@@ -157,11 +158,12 @@ Nowe tabele jako pliki `server/sql/NNN_*.sql` (wgrywane ręcznie w phpMyAdmin), 
 - [ ] Odpowiedzieć na pytania poniżej.
 
 ### 1. Serwer (Claude) — `server/` w repo, wgrywane do `rezerwacjaapp/aplikacja-api/`
-- [ ] Logowanie tokenem, `ja`, wylogowanie, blokada prób.
-- [ ] Akcje rezerwacji, wynajmu, zadań, ustawień (z poprawkami z punktu „Czego brakuje”).
-- [ ] Rozpiski jako dane, zgłaszanie błędów + `bledy.php`, `apk.php`, min. wersja.
-- [ ] `cron.php` — SMS o nowych rezerwacjach z www (jeśli się zgodzisz).
-- [ ] Test API (`server/testy/test_api.php`) na pustej bazie w GitHub Actions.
+- [x] Logowanie tokenem, `ja`, wylogowanie, blokada prób (02.10).
+- [x] Akcje rezerwacji, wynajmu, zadań, ustawień — z poprawkami z punktu „Czego brakuje” (02.10).
+- [x] Zgłaszanie błędów + `bledy.php`, `apk.php`, min. wersja (02.10).
+- [x] `cron.php` — SMS o nowych rezerwacjach z www (02.10).
+- [x] Test API (`server/testy/uruchom.sh`, ~100 sprawdzeń) na pustej bazie MariaDB, też w GitHub „Sprawdź kod” (02.10).
+- [ ] Wgranie na serwer (Ty, instrukcja `server/README.md`).
 
 ### 2. Aplikacja — podstawa (Claude)
 - [ ] Projekt Expo (SDK 57), nazwa „Rezerwacje”, pakiet `pl.silt.rezerwacje`, ikona z PWA, kolory i DM Sans z `style.css`.
@@ -203,4 +205,5 @@ Nowe tabele jako pliki `server/sql/NNN_*.sql` (wgrywane ręcznie w phpMyAdmin), 
 
 ## Stan
 - 02.10: przeczytana paczka PWA i repo SILT Lista, plan gotowy, odpowiedzi Michała wpisane.
-  Czekam na: repo + EXPO_TOKEN, strukturę bazy, decyzję w sprawie iPhone'a.
+- 02.10: etap 1 (serwer) gotowy w repo i przetestowany; do wgrania na serwer. Następny: etap 2 (aplikacja).
+  Czekam na: EXPO_TOKEN w sekretach repo, decyzję w sprawie iPhone'a.

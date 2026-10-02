@@ -1,0 +1,13 @@
+# Rezerwacje — API aplikacji: blokada dostępu do konfiguracji i plików wewnętrznych
+Options -Indexes
+
+<FilesMatch "^(config.*\.php|.*\.sql|.*\.md|.*\.sh)$">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Deny from all
+  </IfModule>
+</FilesMatch>
+
+RedirectMatch 403 /aplikacja-api/(lib|sql|testy)/
