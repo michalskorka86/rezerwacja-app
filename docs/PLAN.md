@@ -177,8 +177,8 @@ Nowe tabele jako pliki `server/sql/NNN_*.sql` (wgrywane ręcznie w phpMyAdmin), 
 - [x] Dzień i Miesiąc (02.10).
 
 ### 3. Pozostałe moduły (Claude)
-- [ ] Wynajem sprzętu (+ obrazek do udostępnienia).
-- [ ] Zadania (+ licznik).
+- [x] Wynajem sprzętu (+ obrazek do udostępnienia).
+- [x] Zadania (+ licznik).
 - [ ] Ustawienia (konto, użytkownicy, SMS).
 - [ ] Rozpiski Arsenału (PDF w telefonie).
 - [ ] Udostępnianie rezerwacji jako obrazek.
@@ -213,3 +213,7 @@ Nowe tabele jako pliki `server/sql/NNN_*.sql` (wgrywane ręcznie w phpMyAdmin), 
 - 02.10: etap 2b — formularz rezerwacji (dodaj / edytuj / kopiuj), wysłany aktualizacją w powietrzu.
   Projekt Expo: michal198926s-team/rezerwacja-app.
   iPhone (konto Apple) — na koniec, gdy aplikacja będzie gotowa (decyzja Michała).
+- 02.10: etap 3 — Wynajem sprzętu i Zadania (aktualizacja w powietrzu, bez nowego APK). Listy zapisane w telefonie,
+  filtry i zakładki liczone w telefonie. Wstecz w telefonie w formularzu = „← wróć do listy” (z pytaniem, gdy coś wpisano).
+  Do uzgodnienia z Michałem (nie wprowadzone, wygląd 1:1): licznik zadań przy imieniu w zakładkach,
+  czerwony termin zadania po terminie.

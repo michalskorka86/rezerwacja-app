@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   Animated,
   Easing,
@@ -20,6 +20,24 @@ import { C, Fonts } from '@/constants/theme';
 import { ustawEkran } from '@/stan/zglos';
 
 import { WarstwaKomunikatow } from './Komunikaty';
+
+type ArkuszApi = { naGore: () => void; ustawWstecz: (f: (() => void) | null) => void };
+const ArkuszKontekst = createContext<ArkuszApi | null>(null);
+
+/**
+ * Dla ekranów wewnątrz arkusza (np. formularz wynajmu na miejscu listy): po otwarciu przewija arkusz na górę,
+ * a przycisk Wstecz w telefonie woła `wstecz` (np. „← wróć do listy”) zamiast zamykać cały arkusz.
+ */
+export function usePodstronaArkusza(wstecz: () => void) {
+  const api = useContext(ArkuszKontekst);
+  useEffect(() => {
+    api?.naGore();
+  }, [api]);
+  useEffect(() => {
+    api?.ustawWstecz(wstecz);
+    return () => api?.ustawWstecz(null);
+  }, [api, wstecz]);
+}
 
 /**
  * Arkusz od dołu jak .sheet w PWA: przyciemnione tło, zaokrąglona góra, nagłówek z tytułem i ✕.
@@ -58,6 +76,14 @@ export function Arkusz({
   const [anim] = useState(() => new Animated.Value(0));
   // otwarcie: od razu w tym samym renderze (zamknięcie czeka na koniec animacji)
   if (widoczny && !pokaz) setPokaz(true);
+  const przewijanie = useRef<ScrollView>(null);
+  const wstecz = useRef<(() => void) | null>(null);
+  const [api] = useState<ArkuszApi>(() => ({
+    naGore: () => przewijanie.current?.scrollTo({ y: 0, animated: false }),
+    ustawWstecz: (f) => {
+      wstecz.current = f;
+    },
+  }));
 
   useEffect(() => {
     if (widoczny) {
@@ -72,7 +98,7 @@ export function Arkusz({
   const przesun = anim.interpolate({ inputRange: [0, 1], outputRange: [height, 0] });
 
   return (
-    <Modal visible transparent animationType="none" onRequestClose={onZamknij} statusBarTranslucent navigationBarTranslucent>
+    <Modal visible transparent animationType="none" onRequestClose={() => (wstecz.current ? wstecz.current() : onZamknij())} statusBarTranslucent navigationBarTranslucent>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <Animated.View style={[StyleSheet.absoluteFill, styles.tlo, { opacity: anim }]}>
           <Pressable style={styles.flex} onPress={onZamknij} accessibilityLabel="Zamknij" />
@@ -92,10 +118,11 @@ export function Arkusz({
             </View>
           )}
           <ScrollView
+            ref={przewijanie}
             style={styles.scroll}
             contentContainerStyle={bezPaddingu ? { paddingBottom: 40 } : styles.body}
             keyboardShouldPersistTaps="handled">
-            {children}
+            <ArkuszKontekst.Provider value={api}>{children}</ArkuszKontekst.Provider>
           </ScrollView>
           {stopka ? <View style={[styles.stopka, { paddingBottom: 10 + insets.bottom }]}>{stopka}</View> : null}
         </Animated.View>

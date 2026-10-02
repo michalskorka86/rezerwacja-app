@@ -13,6 +13,8 @@ import { WidokMiesiaca } from '@/components/kalendarz/WidokMiesiaca';
 import { Arkusz } from '@/components/ui/Arkusz';
 import { useKomunikaty } from '@/components/ui/Komunikaty';
 import { WBudowie } from '@/components/WBudowie';
+import { WynajemSprzetu } from '@/components/wynajem/WynajemSprzetu';
+import { Zadania } from '@/components/zadania/Zadania';
 import { ZmianaHasla } from '@/components/ZmianaHasla';
 import { C, cien, Fonts, Size } from '@/constants/theme';
 import { dzisStr, miesiac } from '@/logika/daty';
@@ -267,10 +269,10 @@ export default function Kalendarz() {
       ) : null}
 
       <Arkusz widoczny={okno === 'wynajem'} onZamknij={() => setOkno(null)} tytul="📦 Wynajem sprzętu" nazwa="wynajem" wysokosc={0.98}>
-        <WBudowie co="Wynajem sprzętu" />
+        <WynajemSprzetu />
       </Arkusz>
-      <Arkusz widoczny={okno === 'zadania'} onZamknij={() => setOkno(null)} tytul="📋 Zadania" nazwa="zadania" wysokosc={0.96}>
-        <WBudowie co="Zadania" />
+      <Arkusz widoczny={okno === 'zadania'} onZamknij={() => setOkno(null)} tytul="📋 Zadania" nazwa="zadania" wysokosc={0.96} bezPaddingu>
+        <Zadania />
       </Arkusz>
       <Arkusz widoczny={okno === 'ustawienia'} onZamknij={() => setOkno(null)} tytul="⚙️ Ustawienia" nazwa="ustawienia" wysokosc={0.98}>
         <WBudowie co="Ustawienia" />
