@@ -129,8 +129,8 @@ function wyslij_push(array $wiadomosci): int
     return $ok;
 }
 
-/** Marki, w których telefony dostają push także o rezerwacjach wpisanych przez zespół (decyzja Michała: tylko Arsenał). */
-const PUSH_REZERWACJE_ZESPOLU = ['arsenal'];
+/** Marki, w których telefony dostają push także o rezerwacjach wpisanych przez zespół (decyzja Michała: Arsenał i SILT). */
+const PUSH_REZERWACJE_ZESPOLU = ['arsenal', 'silt'];
 
 /** „sob. 10.10 · 10:00 · ASG · 12 os. · Jan Kowalski” */
 function opis_push(array $r): string
@@ -189,7 +189,7 @@ function push_o_rezerwacji(array $r, string $tytul, string $tresc, array $tokeny
     return $n;
 }
 
-/** Po dodaniu rezerwacji w aplikacji: push do POZOSTAŁYCH telefonów marki (tylko marki z PUSH_REZERWACJE_ZESPOLU). Nie rzuca. */
+/** Po dodaniu rezerwacji w aplikacji: push do POZOSTAŁYCH telefonów marki (marki z PUSH_REZERWACJE_ZESPOLU). Nie rzuca. */
 function push_nowa_z_aplikacji(array $u, array $r): void
 {
     if (!in_array($r['marka'], PUSH_REZERWACJE_ZESPOLU, true)) return;

@@ -407,9 +407,12 @@ $p = pushe();
 sprawdz('push: Paweł dodał w Arsenale → telefon Tomka, nie Pawła', count($p) === 1 && $p[0]['to'] === 'ExponentPushToken[tomek-ars]'
     && $p[0]['title'] === '🆕 Nowa rezerwacja · Wołomin' && strpos($p[0]['body'], 'Dodał(a) Paweł') === 0 && strpos($p[0]['body'], 'Push Test') !== false
     && ($p[0]['data']['rezerwacja_id'] ?? 0) === $pushId, $p);
+$pdo->exec("INSERT INTO app_tokeny (uzytkownik_id, token_hash, urzadzenie, push_token, utworzony, ostatnio) VALUES (1, REPEAT('c', 64), 'drugi', 'ExponentPushToken[silt-2]', NOW(), NOW())");
 jako($tMichal);
 api('rezerwacja_dodaj', $nowa);
-sprawdz('push: SILT wpisany w aplikacji — bez powiadomienia', count(pushe()) === 1, pushe());
+$p = pushe();
+sprawdz('push: SILT wpisany w aplikacji → drugi telefon SILT, nie autora', count($p) === 2 && $p[1]['to'] === 'ExponentPushToken[silt-2]'
+    && $p[1]['title'] === '🆕 Nowa rezerwacja' && strpos($p[1]['body'], 'Dodał(a) Michał') === 0, $p);
 // rezerwacja wpisana w PWA (zrodlo = panel) → cron
 $pdo->exec("INSERT INTO rezerwacje (id, klient_imie_nazwisko, klient_telefon, marka, lokalizacja, atrakcja_id, liczba_osob, data_rezerwacji, godzina_start, status, zadatek_status, zrodlo, dodana_przez, sms_wyslany)
   VALUES (150, 'Z PWA', '500600700', 'arsenal', 'rembert', 2, 9, '$za2', '15:00:00', 'oczekujaca', 'brak', 'panel', 2, 1)");

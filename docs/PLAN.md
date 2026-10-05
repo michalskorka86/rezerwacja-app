@@ -235,4 +235,4 @@ Nowe tabele jako pliki `server/sql/NNN_*.sql` (wgrywane ręcznie w phpMyAdmin), 
 - 05.10: cron w LH.pl ustawiony (php81 …/aplikacja-api/cron.php co 5 min). Ustawienia → „🔔 Wyślij próbne powiadomienie”
   z diagnozą (zgoda, Firebase, cron, ostatnia z www). Decyzja Michała: w ARSENALE push także o rezerwacji wpisanej
   przez zespół — z aplikacji od razu (do pozostałych telefonów marki, bez telefonu autora), z PWA przez cron;
-  SILT bez zmian (tylko www). Stała PUSH_REZERWACJE_ZESPOLU w server/lib/push.php.
+  potem także SILT (Kuba wpisuje ręcznie). Stała PUSH_REZERWACJE_ZESPOLU w server/lib/push.php.
