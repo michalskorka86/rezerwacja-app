@@ -7,6 +7,7 @@ import type { UstawieniaSms, UzytkownikAdmin } from '@/logika/typy';
 import { bladUzytkownika, daneUzytkownika, nowyUzytkownik, type StanUzytkownika } from '@/logika/ustawienia';
 import { useDane } from '@/stan/DaneProvider';
 import { klient } from '@/stan/klient';
+import { zarejestrujPush } from '@/stan/push';
 import { WERSJA_APLIKACJI } from '@/stan/sesja';
 import { zglos, zglosProblem } from '@/stan/zglos';
 
@@ -90,6 +91,7 @@ export function Ustawienia() {
               <Text style={styles.wersja}>{opisWersji(WERSJA_APLIKACJI)}</Text>
             </View>
             <SprawdzAktualizacje />
+            <TestPowiadomien />
             <Przycisk tekst="📨 Zgłoś problem" onPress={() => setPodstrona('problem')} />
             <Przycisk
               tekst="Wyloguj"
@@ -131,6 +133,63 @@ function Przycisk({ tekst, onPress, czerwony, wylaczony }: { tekst: string; onPr
       style={({ pressed }) => [styles.przycisk, czerwony && { borderColor: '#f5c0bb', backgroundColor: C.redL }, (pressed || wylaczony) && { opacity: 0.65 }]}>
       <Text style={[styles.przyciskTxt, czerwony && { color: C.red, fontFamily: Fonts.semibold }]}>{tekst}</Text>
     </Pressable>
+  );
+}
+
+type Diagnoza = {
+  telefon_zapisany: boolean;
+  telefonow_marki: number;
+  cron_ostatnio: string;
+  teraz: string;
+  ostatnia_www: { id: number; status: string; utworzona: string | null; marka: string; push_czas: string | null; push_telefonow: number | null } | null;
+};
+
+/** 🔔 Próbne powiadomienie na ten telefon — pokazuje, na którym kroku jest problem (zgoda, Firebase, serwer, cron). */
+function TestPowiadomien() {
+  const [trwa, setTrwa] = useState(false);
+  const [linie, setLinie] = useState<string[] | null>(null);
+  const testuj = async () => {
+    setTrwa(true);
+    setLinie(['⏳ Sprawdzam…']);
+    const l: string[] = [];
+    try {
+      const r = await zarejestrujPush(true);
+      if (!r.ok) {
+        l.push(`❌ Krok „${r.krok}”: ${r.blad}`);
+        setLinie(l);
+        zglos(new Error(`Test powiadomień: ${r.krok}: ${r.blad}`), { dopisek: 'Test powiadomień' });
+        return;
+      }
+      l.push('✅ Zgoda na powiadomienia i adres telefonu');
+      const j = await klient<{ wyslano: boolean; wynik: string; diagnoza: Diagnoza }>('push_test', { body: {}, czasMs: 30000 });
+      l.push((j.wyslano && j.wynik.startsWith('ok') ? '✅ ' : j.wyslano ? 'ℹ️ ' : '❌ ') + j.wynik);
+      const d = j.diagnoza;
+      l.push(`Telefonów tej marki z powiadomieniami: ${d.telefonow_marki}`);
+      l.push(d.cron_ostatnio ? `Cron ostatnio: ${d.cron_ostatnio} (teraz ${d.teraz.slice(11, 16)})` : '❌ Cron jeszcze ani razu nie działał (brak wpisu w panelu LH.pl?)');
+      const w = d.ostatnia_www;
+      if (w) l.push(`Ostatnia z www: nr ${w.id}, ${w.status}, ${w.utworzona ?? '?'} → ${w.push_czas ? `push ${w.push_czas} (${w.push_telefonow ?? 0} tel.)` : 'push nie wysłany'}`);
+      setLinie(l);
+      if (!j.wyslano || !j.wynik.startsWith('ok')) zglos(new Error('Test powiadomień: ' + l.join(' | ')), { dopisek: 'Test powiadomień' });
+    } catch (e) {
+      l.push('❌ ' + komunikatBledu(e));
+      setLinie(l);
+    } finally {
+      setTrwa(false);
+    }
+  };
+  return (
+    <>
+      <Przycisk tekst={trwa ? '⏳ Wysyłam…' : '🔔 Wyślij próbne powiadomienie'} onPress={testuj} wylaczony={trwa} />
+      {linie ? (
+        <View style={[styles.karta, { marginTop: 8, gap: 4 }]}>
+          {linie.map((t, i) => (
+            <Text key={i} style={styles.maly} selectable>
+              {t}
+            </Text>
+          ))}
+        </View>
+      ) : null}
+    </>
   );
 }
 

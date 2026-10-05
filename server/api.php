@@ -21,6 +21,7 @@
 //   GET  uzytkownicy_admin | sms_ustawienia            (admin)
 //   POST uzytkownik_dodaj | haslo_reset | uzytkownik_aktywny | sms_ustawienia_zapisz   (admin)
 //   POST push_zarejestruj {token}                      → adres powiadomień tego telefonu
+//   POST push_test                                     → próbne powiadomienie na ten telefon + diagnoza
 //   POST blad {ekran, komunikat, stos}                 → zgłoszenie błędu (także bez logowania)
 //
 // Nagłówki: X-Token (po zalogowaniu), X-App-Wersja (zawsze). Treść POST: JSON.
@@ -83,6 +84,7 @@ $zapis = [
     'uzytkownik_aktywny' => 'akcja_uzytkownik_aktywny',
     'sms_ustawienia_zapisz' => 'akcja_sms_ustawienia_zapisz',
     'push_zarejestruj' => 'akcja_push_zarejestruj',
+    'push_test' => function (array $u) { akcja_push_test($u); },
 ];
 
 try {

@@ -1,5 +1,11 @@
 <?php
 // Atrapa Expo Push do testów: zapisuje wiadomości do REZ_MOCK_DIR/push.json. Token z „Zly” → DeviceNotRegistered.
+if (isset($_GET['potwierdzenia'])) {
+    $ids = json_decode((string)file_get_contents('php://input'), true)['ids'] ?? [];
+    header('Content-Type: application/json');
+    echo json_encode(['data' => (object)array_fill_keys($ids, ['status' => 'ok'])]);
+    exit;
+}
 $plik = (getenv('REZ_MOCK_DIR') ?: sys_get_temp_dir()) . '/push.json';
 $lista = is_file($plik) ? (json_decode((string)file_get_contents($plik), true) ?: []) : [];
 $wiad = json_decode((string)file_get_contents('php://input'), true) ?: [];

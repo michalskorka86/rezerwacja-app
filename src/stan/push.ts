@@ -8,6 +8,8 @@ import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
+import { komunikatBledu } from '@/logika/klient';
+
 import { klient } from './klient';
 import { zglos } from './zglos';
 
@@ -24,12 +26,16 @@ if (!naWeb) {
 
 let zarejestrowano = '';
 
+/** Wynik rejestracji — do „🔔 Wyślij próbne powiadomienie” w Ustawieniach (pokazuje, na którym kroku jest problem). */
+export type WynikPush = { ok: true; token: string } | { ok: false; krok: 'zgoda' | 'adres' | 'serwer' | 'web'; blad: string };
+
 /**
  * Pyta o zgodę (raz — Android 13+ pokazuje systemowe okienko), tworzy kanał i wysyła adres na serwer.
  * Nigdy nie rzuca: bez zgody / bez internetu aplikacja działa dalej, spróbuje przy następnym starcie.
+ * `wymus` — wyślij adres na serwer nawet, gdy już był wysłany (test w Ustawieniach).
  */
-export async function zarejestrujPush(): Promise<void> {
-  if (naWeb) return;
+export async function zarejestrujPush(wymus = false): Promise<WynikPush> {
+  if (naWeb) return { ok: false, krok: 'web', blad: 'Powiadomienia działają tylko w aplikacji na telefonie.' };
   try {
     if (Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync(KANAL, {
@@ -42,15 +48,29 @@ export async function zarejestrujPush(): Promise<void> {
     }
     let { status } = await Notifications.getPermissionsAsync();
     if (status !== 'granted') status = (await Notifications.requestPermissionsAsync()).status;
-    if (status !== 'granted') return;
+    if (status !== 'granted') {
+      return { ok: false, krok: 'zgoda', blad: 'Brak zgody na powiadomienia. Ustawienia telefonu → Aplikacje → Rezerwacje → Powiadomienia → włącz.' };
+    }
+  } catch (e) {
+    zglos(e, { dopisek: 'Powiadomienia (zgoda)' });
+    return { ok: false, krok: 'zgoda', blad: String(e) };
+  }
+  let token: string;
+  try {
     const projectId = Constants.expoConfig?.extra?.eas?.projectId as string | undefined;
-    const { data: token } = await Notifications.getExpoPushTokenAsync(projectId ? { projectId } : undefined);
-    if (!token || token === zarejestrowano) return;
+    token = (await Notifications.getExpoPushTokenAsync(projectId ? { projectId } : undefined)).data;
+  } catch (e) {
+    // zwykle: brak usług Google Play albo problem z Firebase
+    zglos(e, { dopisek: 'Powiadomienia (adres telefonu)' });
+    return { ok: false, krok: 'adres', blad: e instanceof Error ? e.message : String(e) };
+  }
+  if (!wymus && token === zarejestrowano) return { ok: true, token };
+  try {
     await klient('push_zarejestruj', { body: { token } });
     zarejestrowano = token;
+    return { ok: true, token };
   } catch (e) {
-    // brak usług Google / brak internetu — nie przeszkadzamy pracownikowi, tylko zapisujemy do logu błędów
-    zglos(e, { dopisek: 'Powiadomienia (rejestracja)' });
+    return { ok: false, krok: 'serwer', blad: komunikatBledu(e) };
   }
 }
 

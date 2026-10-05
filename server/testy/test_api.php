@@ -423,6 +423,11 @@ sprawdz('push: niezainstalowana aplikacja — token wyczyszczony',
 $ile = count(pushe());
 zapytanie($BAZA . '/cron.php?key=cron-test', null, []);
 sprawdz('push: drugi raz nic nie wysyła', count(pushe()) === $ile);
+jako($tPawel);
+$r = api('push_test', []);
+sprawdz('push: próbne powiadomienie + potwierdzenie i stan crona', ($r['wyslano'] ?? false) === true && strpos($r['wynik'] ?? '', 'ok') === 0
+    && ($r['diagnoza']['cron_ostatnio'] ?? '') !== '' && ($r['diagnoza']['ostatnia_www']['id'] ?? 0) > 0, $r);
+jako($tMichal);
 
 // ── Błędy, APK, wylogowanie ─────────────────────────────────
 echo "Błędy, APK, wylogowanie\n";

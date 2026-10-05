@@ -25,6 +25,9 @@ if (!$zLinii && (CRON_KEY === '' || !hash_equals(CRON_KEY, (string)($_GET['key']
 try {
     $sms = wyslij_sms_nowe_www();
     $push = wyslij_push_nowe_www();
+    // ślad, że cron działa (podgląd w Ustawieniach → 🔔 test); wiersz app_ w tabeli ustawienia, jak app_min_wersja
+    baza()->prepare('INSERT INTO ustawienia (klucz, wartosc) VALUES (?, ?) ON DUPLICATE KEY UPDATE wartosc = VALUES(wartosc)')
+        ->execute(['app_cron_ostatnio', date('Y-m-d H:i:s')]);
     $wynik = ['ok' => true, 'czas' => date('Y-m-d H:i:s'), 'sms' => $sms, 'push' => $push];
 } catch (Throwable $e) {
     error_log('Rezerwacje cron: ' . $e->getMessage());

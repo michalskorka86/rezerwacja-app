@@ -16,6 +16,86 @@ function akcja_push_zarejestruj(array $u, array $d): void
     odpowiedz(['ok' => true]);
 }
 
+/**
+ * POST push_test — próbne powiadomienie na TEN telefon + diagnoza (Ustawienia → 🔔).
+ * Czeka chwilę na potwierdzenie z Expo/Firebase i zwraca jego wynik oraz stan crona i ostatniej rezerwacji z www.
+ */
+function akcja_push_test(array $u): void
+{
+    $pdo = baza();
+    $st = $pdo->prepare('SELECT push_token FROM app_tokeny WHERE id = ?');
+    $st->execute([$u['token_id']]);
+    $tok = (string)$st->fetchColumn();
+    $diag = [
+        'telefon_zapisany' => $tok !== '',
+        'telefonow_marki' => (int)$pdo->query("SELECT COUNT(*) FROM app_tokeny t JOIN uzytkownicy u ON u.id = t.uzytkownik_id
+            WHERE t.push_token IS NOT NULL AND u.aktywny = 1 AND u.marka = " . $pdo->quote((string)$u['marka']))->fetchColumn(),
+        'cron_ostatnio' => ustawienie('app_cron_ostatnio', ''),
+        'teraz' => date('Y-m-d H:i:s'),
+    ];
+    $w = $pdo->query("SELECT r.id, r.status, r.utworzona, r.marka, p.czas AS push_czas, p.telefonow AS push_telefonow
+        FROM rezerwacje r LEFT JOIN app_push_wyslane p ON p.rezerwacja_id = r.id
+        WHERE r.zrodlo = 'formularz_www' ORDER BY r.id DESC LIMIT 1")->fetch();
+    $diag['ostatnia_www'] = $w ?: null;
+    if ($tok === '') {
+        odpowiedz(['ok' => true, 'wyslano' => false, 'wynik' => 'Ten telefon nie jest zapisany na serwerze do powiadomień.', 'diagnoza' => $diag]);
+    }
+    [$bilet, $blad] = push_jeden([
+        'to' => $tok, 'title' => '🔔 Próbne powiadomienie', 'body' => 'Powiadomienia działają na tym telefonie.',
+        'sound' => 'default', 'priority' => 'high', 'channelId' => 'rezerwacje', 'data' => ['test' => 1],
+    ]);
+    if ($bilet === '') {
+        odpowiedz(['ok' => true, 'wyslano' => false, 'wynik' => 'Expo odrzuciło: ' . $blad, 'diagnoza' => $diag]);
+    }
+    // potwierdzenie z Firebase (np. zły klucz FCM na expo.dev) przychodzi po kilku sekundach
+    $potw = '';
+    for ($i = 0; $i < 4 && $potw === ''; $i++) {
+        sleep(2);
+        $potw = push_potwierdzenie($bilet);
+    }
+    odpowiedz(['ok' => true, 'wyslano' => true, 'wynik' => $potw === '' ? 'Wysłane — brak jeszcze potwierdzenia (to normalne, sprawdź telefon).' : $potw, 'diagnoza' => $diag]);
+}
+
+/** Jedna wiadomość → [id biletu, błąd]. */
+function push_jeden(array $w): array
+{
+    $ch = curl_init(EXPO_PUSH_URL);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => json_encode([$w], JSON_UNESCAPED_UNICODE),
+        CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Accept: application/json'],
+        CURLOPT_TIMEOUT => 15, CURLOPT_CONNECTTIMEOUT => 5,
+    ]);
+    $res = curl_exec($ch);
+    $kod = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $cerr = curl_error($ch);
+    curl_close($ch);
+    if ($res === false) return ['', 'brak połączenia z Expo (' . $cerr . ')'];
+    $j = json_decode((string)$res, true);
+    $d = $j['data'][0] ?? null;
+    if ($kod >= 400 || !$d) return ['', 'HTTP ' . $kod . ' ' . mb_substr((string)$res, 0, 300)];
+    if (($d['status'] ?? '') !== 'ok') return ['', ($d['message'] ?? '') . ' ' . json_encode($d['details'] ?? null)];
+    return [(string)($d['id'] ?? ''), ''];
+}
+
+/** Wynik doręczenia do Firebase: '' = jeszcze nie wiadomo, 'ok' albo opis błędu. */
+function push_potwierdzenie(string $id): string
+{
+    $ch = curl_init(EXPO_POTWIERDZENIA_URL);
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => json_encode(['ids' => [$id]]),
+        CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Accept: application/json'],
+        CURLOPT_TIMEOUT => 10, CURLOPT_CONNECTTIMEOUT => 5,
+    ]);
+    $res = curl_exec($ch);
+    curl_close($ch);
+    $r = json_decode((string)$res, true)['data'][$id] ?? null;
+    if (!$r) return '';
+    if (($r['status'] ?? '') === 'ok') return 'ok — Firebase przyjął, powiadomienie powinno być na telefonie.';
+    return 'Firebase odrzucił: ' . ($r['message'] ?? '') . ' ' . json_encode($r['details'] ?? null, JSON_UNESCAPED_UNICODE);
+}
+
 /** Wysyłka do Expo Push (po 100 na raz). Zwraca liczbę przyjętych. Tokeny odinstalowanych aplikacji są czyszczone. */
 function wyslij_push(array $wiadomosci): int
 {
