@@ -2,7 +2,8 @@
 // ============================================================
 // Rezerwacje — zadania okresowe (co 5 minut).
 //   SMS do zespołu o nowych rezerwacjach z formularza www (zamiast „przy okazji” licznika w PWA).
-//   Powiadomienia push o tych samych rezerwacjach do telefonów zespołu danej marki.
+//   Powiadomienia push o tych samych rezerwacjach do telefonów zespołu danej marki,
+//   a w Arsenale także o rezerwacjach wpisanych przez zespół w PWA (z aplikacji idą od razu przy zapisie).
 //
 // Uruchamianie (panel LH.pl → Cron, co 5 minut), jedno z dwóch:
 //   php /home/serwer432573/domains/filedops.pl/public_html/rezerwacjaapp/aplikacja-api/cron.php
@@ -25,10 +26,11 @@ if (!$zLinii && (CRON_KEY === '' || !hash_equals(CRON_KEY, (string)($_GET['key']
 try {
     $sms = wyslij_sms_nowe_www();
     $push = wyslij_push_nowe_www();
+    $pushZespol = wyslij_push_nowe_panel();   // Arsenał: rezerwacje wpisane w PWA
     // ślad, że cron działa (podgląd w Ustawieniach → 🔔 test); wiersz app_ w tabeli ustawienia, jak app_min_wersja
     baza()->prepare('INSERT INTO ustawienia (klucz, wartosc) VALUES (?, ?) ON DUPLICATE KEY UPDATE wartosc = VALUES(wartosc)')
         ->execute(['app_cron_ostatnio', date('Y-m-d H:i:s')]);
-    $wynik = ['ok' => true, 'czas' => date('Y-m-d H:i:s'), 'sms' => $sms, 'push' => $push];
+    $wynik = ['ok' => true, 'czas' => date('Y-m-d H:i:s'), 'sms' => $sms, 'push' => $push, 'push_zespol' => $pushZespol];
 } catch (Throwable $e) {
     error_log('Rezerwacje cron: ' . $e->getMessage());
     $wynik = ['ok' => false, 'msg' => 'Błąd: ' . $e->getMessage()];

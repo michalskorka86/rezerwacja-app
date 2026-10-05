@@ -397,6 +397,22 @@ $r = api('push_zarejestruj', ['token' => 'ExponentPushToken[pawel-1]']);
 sprawdz('push: telefon Pawła zapisany', ($r['ok'] ?? false) === true, $r);
 jako($tMichal);
 $r = api('push_zarejestruj', ['token' => 'ExponentPushToken[michal-1]']);
+// drugi telefon Arsenału (Tomek)
+$pdo->exec("INSERT INTO app_tokeny (uzytkownik_id, token_hash, urzadzenie, push_token, utworzony, ostatnio) VALUES (2, REPEAT('b', 64), 'tomek', 'ExponentPushToken[tomek-ars]', NOW(), NOW())");
+@unlink($MOCK . '/push.json');
+jako($tPawel);
+$r = api('rezerwacja_dodaj', array_merge($nowa, ['lokalizacja' => 'wolomin', 'imie_nazwisko' => 'Push Test']));
+$pushId = (int)($r['id'] ?? 0);
+$p = pushe();
+sprawdz('push: Paweł dodał w Arsenale → telefon Tomka, nie Pawła', count($p) === 1 && $p[0]['to'] === 'ExponentPushToken[tomek-ars]'
+    && $p[0]['title'] === '🆕 Nowa rezerwacja · Wołomin' && strpos($p[0]['body'], 'Dodał(a) Paweł') === 0 && strpos($p[0]['body'], 'Push Test') !== false
+    && ($p[0]['data']['rezerwacja_id'] ?? 0) === $pushId, $p);
+jako($tMichal);
+api('rezerwacja_dodaj', $nowa);
+sprawdz('push: SILT wpisany w aplikacji — bez powiadomienia', count(pushe()) === 1, pushe());
+// rezerwacja wpisana w PWA (zrodlo = panel) → cron
+$pdo->exec("INSERT INTO rezerwacje (id, klient_imie_nazwisko, klient_telefon, marka, lokalizacja, atrakcja_id, liczba_osob, data_rezerwacji, godzina_start, status, zadatek_status, zrodlo, dodana_przez, sms_wyslany)
+  VALUES (150, 'Z PWA', '500600700', 'arsenal', 'rembert', 2, 9, '$za2', '15:00:00', 'oczekujaca', 'brak', 'panel', 2, 1)");
 $pdo->exec("INSERT INTO app_tokeny (uzytkownik_id, token_hash, urzadzenie, push_token, utworzony, ostatnio) VALUES (2, REPEAT('a', 64), 'stary', 'ExponentPushToken[Zly-arsenal]', NOW(), NOW())");
 
 // ── Cron: SMS o rezerwacjach z www ──────────────────────────
@@ -423,6 +439,9 @@ sprawdz('push: niezainstalowana aplikacja — token wyczyszczony',
 $ile = count(pushe());
 zapytanie($BAZA . '/cron.php?key=cron-test', null, []);
 sprawdz('push: drugi raz nic nie wysyła', count(pushe()) === $ile);
+$zPwa = array_values(array_filter(pushe(), fn ($w) => ($w['data']['rezerwacja_id'] ?? 0) === 150));
+sprawdz('push: rezerwacja Arsenału wpisana w PWA → cron do telefonów Arsenału', count($zPwa) === 2
+    && $zPwa[0]['title'] === '🆕 Nowa rezerwacja · Rembertów' && strpos($zPwa[0]['body'], 'Dodał(a) Paweł') === 0, $zPwa);
 jako($tPawel);
 $r = api('push_test', []);
 sprawdz('push: próbne powiadomienie + potwierdzenie i stan crona', ($r['wyslano'] ?? false) === true && strpos($r['wynik'] ?? '', 'ok') === 0

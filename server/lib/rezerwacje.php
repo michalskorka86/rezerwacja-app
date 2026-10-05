@@ -194,7 +194,9 @@ function akcja_rezerwacja_dodaj(array $u, array $d): void
             . 'Osob: ' . $p['liczba_osob'] . ' os. / ' . $p['atrakcja_nazwa'] . $lokTxt . "\n"
             . 'Zadatek: ' . ($p['zadatek_status'] === 'oplacony' ? 'Oplacony' : 'Brak'));
     }
-    odpowiedz(['ok' => true, 'id' => $id, 'rezerwacja' => rezerwacja_dla_aplikacji(wczytaj_rezerwacje($id), $u)]);
+    $nowa = wczytaj_rezerwacje($id);
+    push_nowa_z_aplikacji($u, $nowa);   // Arsenał: pozostałe telefony marki dostają „🆕 Nowa rezerwacja”
+    odpowiedz(['ok' => true, 'id' => $id, 'rezerwacja' => rezerwacja_dla_aplikacji($nowa, $u)]);
 }
 
 /** POST rezerwacja_edytuj {id, …} — tylko własna marka. */

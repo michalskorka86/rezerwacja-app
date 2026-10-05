@@ -232,3 +232,7 @@ Nowe tabele jako pliki `server/sql/NNN_*.sql` (wgrywane ręcznie w phpMyAdmin), 
   Serwer: lib/push.php, akcja push_zarejestruj, cron.php wysyła push o nowej rezerwacji z www (ostatnie 2 h, raz,
   do telefonów tej samej marki), sql/002_push.sql. Aplikacja: expo-notifications (NOWY MODUŁ → nowy APK),
   kanał „Nowe rezerwacje”, dotknięcie otwiera szczegóły rezerwacji.
+- 05.10: cron w LH.pl ustawiony (php81 …/aplikacja-api/cron.php co 5 min). Ustawienia → „🔔 Wyślij próbne powiadomienie”
+  z diagnozą (zgoda, Firebase, cron, ostatnia z www). Decyzja Michała: w ARSENALE push także o rezerwacji wpisanej
+  przez zespół — z aplikacji od razu (do pozostałych telefonów marki, bez telefonu autora), z PWA przez cron;
+  SILT bez zmian (tylko www). Stała PUSH_REZERWACJE_ZESPOLU w server/lib/push.php.

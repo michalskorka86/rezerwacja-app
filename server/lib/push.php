@@ -129,8 +129,11 @@ function wyslij_push(array $wiadomosci): int
     return $ok;
 }
 
-/** „🆕 Nowa rezerwacja z www” / „sob. 10.10 · 10:00 · ASG · 12 os. · Jan Kowalski” */
-function tresc_push_nowa_www(array $r): array
+/** Marki, w których telefony dostają push także o rezerwacjach wpisanych przez zespół (decyzja Michała: tylko Arsenał). */
+const PUSH_REZERWACJE_ZESPOLU = ['arsenal'];
+
+/** „sob. 10.10 · 10:00 · ASG · 12 os. · Jan Kowalski” */
+function opis_push(array $r): string
 {
     $dni = ['nd.', 'pon.', 'wt.', 'śr.', 'czw.', 'pt.', 'sob.'];
     $t = strtotime((string)$r['data_rezerwacji']);
@@ -139,8 +142,89 @@ function tresc_push_nowa_www(array $r): array
     if (!empty($r['atrakcja_nazwa'])) $czesci[] = $r['atrakcja_nazwa'];
     $czesci[] = (int)$r['liczba_osob'] . ' os.';
     $czesci[] = $r['klient_imie_nazwisko'];
-    $gdzie = $r['marka'] === 'arsenal' ? ($r['lokalizacja'] === 'wolomin' ? ' · Wołomin' : ' · Rembertów') : '';
-    return ['tytul' => '🆕 Nowa rezerwacja z www' . $gdzie, 'tresc' => implode(' · ', $czesci)];
+    return implode(' · ', $czesci);
+}
+
+/** „ · Wołomin” / „ · Rembertów” dla Arsenału. */
+function gdzie_push(array $r): string
+{
+    return $r['marka'] === 'arsenal' ? ($r['lokalizacja'] === 'wolomin' ? ' · Wołomin' : ' · Rembertów') : '';
+}
+
+/** „🆕 Nowa rezerwacja z www” / „sob. 10.10 · 10:00 · ASG · 12 os. · Jan Kowalski” */
+function tresc_push_nowa_www(array $r): array
+{
+    return ['tytul' => '🆕 Nowa rezerwacja z www' . gdzie_push($r), 'tresc' => opis_push($r)];
+}
+
+/** Adresy push zalogowanych telefonów marki (bez telefonu o podanym id logowania — np. autora). */
+function tokeny_marki(string $marka, int $bezTokenu = 0): array
+{
+    $st = baza()->prepare(
+        "SELECT DISTINCT t.push_token FROM app_tokeny t JOIN uzytkownicy u ON u.id = t.uzytkownik_id
+         WHERE t.push_token IS NOT NULL AND u.aktywny = 1 AND u.marka = ? AND t.id <> ?"
+    );
+    $st->execute([$marka, $bezTokenu]);
+    return $st->fetchAll(PDO::FETCH_COLUMN);
+}
+
+/** Wysyła push o rezerwacji (raz — znacznik w app_push_wyslane PRZED wysyłką). Zwraca liczbę telefonów albo -1, gdy już była. */
+function push_o_rezerwacji(array $r, string $tytul, string $tresc, array $tokeny): int
+{
+    $pdo = baza();
+    $st = $pdo->prepare('INSERT IGNORE INTO app_push_wyslane (rezerwacja_id, czas) VALUES (?, NOW())');
+    $st->execute([$r['id']]);
+    if ($st->rowCount() === 0) return -1;
+    if (!$tokeny) return 0;
+    $n = wyslij_push(array_map(fn ($tok) => [
+        'to' => $tok,
+        'title' => $tytul,
+        'body' => $tresc,
+        'data' => ['rezerwacja_id' => (int)$r['id'], 'data' => $r['data_rezerwacji']],
+        'sound' => 'default',
+        'priority' => 'high',
+        'channelId' => 'rezerwacje',
+    ], $tokeny));
+    $pdo->prepare('UPDATE app_push_wyslane SET telefonow = ? WHERE rezerwacja_id = ?')->execute([$n, $r['id']]);
+    return $n;
+}
+
+/** Po dodaniu rezerwacji w aplikacji: push do POZOSTAŁYCH telefonów marki (tylko marki z PUSH_REZERWACJE_ZESPOLU). Nie rzuca. */
+function push_nowa_z_aplikacji(array $u, array $r): void
+{
+    if (!in_array($r['marka'], PUSH_REZERWACJE_ZESPOLU, true)) return;
+    try {
+        push_o_rezerwacji($r, '🆕 Nowa rezerwacja' . gdzie_push($r), 'Dodał(a) ' . $u['imie'] . ' · ' . opis_push($r), tokeny_marki((string)$r['marka'], (int)$u['token_id']));
+    } catch (Throwable $e) {
+        error_log('Rezerwacje push (nowa z aplikacji): ' . $e->getMessage());
+    }
+}
+
+/**
+ * Cron: rezerwacje wpisane przez zespół w PWA (zrodlo = panel) w markach z PUSH_REZERWACJE_ZESPOLU — z ostatnich 2 h,
+ * których aplikacja jeszcze nie ogłosiła. Do wszystkich telefonów marki (PWA nie wie, z którego telefonu wpisano).
+ */
+function wyslij_push_nowe_panel(): array
+{
+    $marki = implode(',', array_map(fn ($m) => baza()->quote($m), PUSH_REZERWACJE_ZESPOLU));
+    $nowe = baza()->query(
+        "SELECT r.*, a.nazwa AS atrakcja_nazwa, u.imie AS autor FROM rezerwacje r
+         LEFT JOIN atrakcje a ON r.atrakcja_id = a.id
+         LEFT JOIN uzytkownicy u ON u.id = r.dodana_przez
+         LEFT JOIN app_push_wyslane p ON p.rezerwacja_id = r.id
+         WHERE r.zrodlo = 'panel' AND r.marka IN ($marki) AND r.status <> 'anulowana' AND p.rezerwacja_id IS NULL
+           AND r.utworzona >= NOW() - INTERVAL 2 HOUR
+         ORDER BY r.id"
+    )->fetchAll();
+    $rezerwacji = 0;
+    $telefonow = 0;
+    foreach ($nowe as $r) {
+        $n = push_o_rezerwacji($r, '🆕 Nowa rezerwacja' . gdzie_push($r), ($r['autor'] ? 'Dodał(a) ' . $r['autor'] . ' · ' : '') . opis_push($r), tokeny_marki((string)$r['marka']));
+        if ($n < 0) continue;
+        $rezerwacji++;
+        $telefonow += $n;
+    }
+    return ['rezerwacji' => $rezerwacji, 'telefonow' => $telefonow];
 }
 
 /**
@@ -161,29 +245,9 @@ function wyslij_push_nowe_www(): array
     $rezerwacji = 0;
     $telefonow = 0;
     foreach ($nowe as $r) {
-        // znacznik PRZED wysyłką — dwa crony naraz nie wyślą podwójnie
-        $st = $pdo->prepare('INSERT IGNORE INTO app_push_wyslane (rezerwacja_id, czas) VALUES (?, NOW())');
-        $st->execute([$r['id']]);
-        if ($st->rowCount() === 0) continue;
-        $st = $pdo->prepare(
-            "SELECT DISTINCT t.push_token FROM app_tokeny t JOIN uzytkownicy u ON u.id = t.uzytkownik_id
-             WHERE t.push_token IS NOT NULL AND u.aktywny = 1 AND u.marka = ?"
-        );
-        $st->execute([$r['marka']]);
-        $tokeny = $st->fetchAll(PDO::FETCH_COLUMN);
-        if (!$tokeny) continue;
         $t = tresc_push_nowa_www($r);
-        $wiad = array_map(fn ($tok) => [
-            'to' => $tok,
-            'title' => $t['tytul'],
-            'body' => $t['tresc'],
-            'data' => ['rezerwacja_id' => (int)$r['id'], 'data' => $r['data_rezerwacji']],
-            'sound' => 'default',
-            'priority' => 'high',
-            'channelId' => 'rezerwacje',
-        ], $tokeny);
-        $n = wyslij_push($wiad);
-        $pdo->prepare('UPDATE app_push_wyslane SET telefonow = ? WHERE rezerwacja_id = ?')->execute([$n, $r['id']]);
+        $n = push_o_rezerwacji($r, $t['tytul'], $t['tresc'], tokeny_marki((string)$r['marka']));
+        if ($n < 0) continue;
         $rezerwacji++;
         $telefonow += $n;
     }
