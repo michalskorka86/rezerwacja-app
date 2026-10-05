@@ -413,6 +413,9 @@ api('rezerwacja_dodaj', $nowa);
 $p = pushe();
 sprawdz('push: SILT wpisany w aplikacji → drugi telefon SILT, nie autora', count($p) === 2 && $p[1]['to'] === 'ExponentPushToken[silt-2]'
     && $p[1]['title'] === '🆕 Nowa rezerwacja' && strpos($p[1]['body'], 'Dodał(a) Michał') === 0, $p);
+// stara rezerwacja z www (sprzed wgrania powiadomień) — nie może pójść
+$pdo->exec("INSERT INTO rezerwacje (id, klient_imie_nazwisko, klient_telefon, marka, lokalizacja, atrakcja_id, liczba_osob, data_rezerwacji, godzina_start, status, zadatek_status, zrodlo, sms_wyslany, utworzona)
+  VALUES (99, 'Stara www', '500600701', 'arsenal', 'rembert', 2, 5, '$za2', '16:00:00', 'oczekujaca', 'brak', 'formularz_www', 1, NOW() - INTERVAL 1 DAY)");
 // rezerwacja wpisana w PWA (zrodlo = panel) → cron
 $pdo->exec("INSERT INTO rezerwacje (id, klient_imie_nazwisko, klient_telefon, marka, lokalizacja, atrakcja_id, liczba_osob, data_rezerwacji, godzina_start, status, zadatek_status, zrodlo, dodana_przez, sms_wyslany)
   VALUES (150, 'Z PWA', '500600700', 'arsenal', 'rembert', 2, 9, '$za2', '15:00:00', 'oczekujaca', 'brak', 'panel', 2, 1)");
@@ -442,6 +445,9 @@ sprawdz('push: niezainstalowana aplikacja — token wyczyszczony',
 $ile = count(pushe());
 zapytanie($BAZA . '/cron.php?key=cron-test', null, []);
 sprawdz('push: drugi raz nic nie wysyła', count(pushe()) === $ile);
+sprawdz('push: stara rezerwacja (sprzed wgrania) pominięta, próg zapisany',
+    !array_filter(pushe(), fn ($w) => ($w['data']['rezerwacja_id'] ?? 0) === 99)
+    && $pdo->query("SELECT wartosc FROM ustawienia WHERE klucz = 'app_push_od_id'")->fetchColumn() === '99');
 $zPwa = array_values(array_filter(pushe(), fn ($w) => ($w['data']['rezerwacja_id'] ?? 0) === 150));
 sprawdz('push: rezerwacja Arsenału wpisana w PWA → cron do telefonów Arsenału', count($zPwa) === 2
     && $zPwa[0]['title'] === '🆕 Nowa rezerwacja · Rembertów' && strpos($zPwa[0]['body'], 'Dodał(a) Paweł') === 0, $zPwa);

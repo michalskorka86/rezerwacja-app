@@ -236,3 +236,6 @@ Nowe tabele jako pliki `server/sql/NNN_*.sql` (wgrywane ręcznie w phpMyAdmin), 
   z diagnozą (zgoda, Firebase, cron, ostatnia z www). Decyzja Michała: w ARSENALE push także o rezerwacji wpisanej
   przez zespół — z aplikacji od razu (do pozostałych telefonów marki, bez telefonu autora), z PWA przez cron;
   potem także SILT (Kuba wpisuje ręcznie). Stała PUSH_REZERWACJE_ZESPOLU w server/lib/push.php.
+- 05.10 wieczorem: rezerwacja z www bez powiadomienia. Poprawka: zamiast okna „ostatnie 2 h” (wrażliwe na różnicę
+  zegarów PHP/bazy) próg numeru rezerwacji app_push_od_id; cron zapisuje start i błąd (app_cron_ostatnio,
+  app_cron_blad) — widać w teście powiadomień.

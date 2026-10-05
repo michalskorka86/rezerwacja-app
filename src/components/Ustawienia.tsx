@@ -140,7 +140,10 @@ type Diagnoza = {
   telefon_zapisany: boolean;
   telefonow_marki: number;
   cron_ostatnio: string;
+  cron_blad?: string;
   teraz: string;
+  baza_teraz?: string;
+  od_numeru?: number;
   ostatnia_www: { id: number; status: string; utworzona: string | null; marka: string; push_czas: string | null; push_telefonow: number | null } | null;
 };
 
@@ -166,6 +169,9 @@ function TestPowiadomien() {
       const d = j.diagnoza;
       l.push(`Telefonów tej marki z powiadomieniami: ${d.telefonow_marki}`);
       l.push(d.cron_ostatnio ? `Cron ostatnio: ${d.cron_ostatnio} (teraz ${d.teraz.slice(11, 16)})` : '❌ Cron jeszcze ani razu nie działał (brak wpisu w panelu LH.pl?)');
+      if (d.cron_blad) l.push(`❌ Błąd crona: ${d.cron_blad}`);
+      if (d.baza_teraz && d.baza_teraz.slice(11, 16) !== d.teraz.slice(11, 16)) l.push(`ℹ️ Zegar bazy: ${d.baza_teraz.slice(11, 16)}`);
+      if (d.od_numeru !== undefined) l.push(`Powiadomienia o rezerwacjach od nr ${d.od_numeru + 1}`);
       const w = d.ostatnia_www;
       if (w) l.push(`Ostatnia z www: nr ${w.id}, ${w.status}, ${w.utworzona ?? '?'} → ${w.push_czas ? `push ${w.push_czas} (${w.push_telefonow ?? 0} tel.)` : 'push nie wysłany'}`);
       setLinie(l);

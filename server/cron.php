@@ -24,15 +24,16 @@ if (!$zLinii && (CRON_KEY === '' || !hash_equals(CRON_KEY, (string)($_GET['key']
 }
 
 try {
+    // ślad, że cron działa (podgląd w Ustawieniach → 🔔 test) — zapisany NA POCZĄTKU, żeby było widać start mimo błędu
+    zapisz_ustawienie('app_cron_ostatnio', date('Y-m-d H:i:s') . ($zLinii ? ' (panel)' : ' (adres)'));
     $sms = wyslij_sms_nowe_www();
     $push = wyslij_push_nowe_www();
     $pushZespol = wyslij_push_nowe_panel();   // rezerwacje wpisane przez zespół w PWA
-    // ślad, że cron działa (podgląd w Ustawieniach → 🔔 test); wiersz app_ w tabeli ustawienia, jak app_min_wersja
-    baza()->prepare('INSERT INTO ustawienia (klucz, wartosc) VALUES (?, ?) ON DUPLICATE KEY UPDATE wartosc = VALUES(wartosc)')
-        ->execute(['app_cron_ostatnio', date('Y-m-d H:i:s')]);
+    zapisz_ustawienie('app_cron_blad', '');
     $wynik = ['ok' => true, 'czas' => date('Y-m-d H:i:s'), 'sms' => $sms, 'push' => $push, 'push_zespol' => $pushZespol];
 } catch (Throwable $e) {
     error_log('Rezerwacje cron: ' . $e->getMessage());
+    try { zapisz_ustawienie('app_cron_blad', date('Y-m-d H:i:s') . ' ' . $e->getMessage()); } catch (Throwable $e2) { /* baza niedostępna */ }
     $wynik = ['ok' => false, 'msg' => 'Błąd: ' . $e->getMessage()];
 }
 

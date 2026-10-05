@@ -99,6 +99,13 @@ function ustawienie(string $klucz, string $domyslna = ''): string
     return $v === false ? $domyslna : (string)$v;
 }
 
+/** Zapis wiersza w tabeli ustawienia (tylko klucze app_… i sms_… — wiersze, nie struktura tabeli PWA). */
+function zapisz_ustawienie(string $klucz, string $wartosc): void
+{
+    baza()->prepare('INSERT INTO ustawienia (klucz, wartosc) VALUES (?, ?) ON DUPLICATE KEY UPDATE wartosc = VALUES(wartosc)')
+        ->execute([$klucz, mb_substr($wartosc, 0, 255)]);
+}
+
 // ── Pola z aplikacji ────────────────────────────────────────
 
 /** Tekst z limitem długości (przycięty). */

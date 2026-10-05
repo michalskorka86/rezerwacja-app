@@ -31,7 +31,10 @@ function akcja_push_test(array $u): void
         'telefonow_marki' => (int)$pdo->query("SELECT COUNT(*) FROM app_tokeny t JOIN uzytkownicy u ON u.id = t.uzytkownik_id
             WHERE t.push_token IS NOT NULL AND u.aktywny = 1 AND u.marka = " . $pdo->quote((string)$u['marka']))->fetchColumn(),
         'cron_ostatnio' => ustawienie('app_cron_ostatnio', ''),
+        'cron_blad' => ustawienie('app_cron_blad', ''),
         'teraz' => date('Y-m-d H:i:s'),
+        'baza_teraz' => (string)$pdo->query('SELECT NOW()')->fetchColumn(),
+        'od_numeru' => prog_push(),
     ];
     $w = $pdo->query("SELECT r.id, r.status, r.utworzona, r.marka, p.czas AS push_czas, p.telefonow AS push_telefonow
         FROM rezerwacje r LEFT JOIN app_push_wyslane p ON p.rezerwacja_id = r.id
@@ -129,6 +132,24 @@ function wyslij_push(array $wiadomosci): int
     return $ok;
 }
 
+/**
+ * Od którego numeru rezerwacji cron wysyła powiadomienia. Ustalany raz, przy pierwszym uruchomieniu:
+ * ostatnia rezerwacja starsza niż 4 h (po wgraniu nie zasypie telefonów starymi, a świeże dojdą).
+ * Poprawka: wcześniej było „utworzona w ciągu 2 h” — przy innej strefie czasowej formularza www i bazy
+ * rezerwacja mogła wypaść z okna i powiadomienie nigdy nie szło. Numer rezerwacji nie zależy od godziny.
+ */
+function prog_push(): int
+{
+    static $prog = null;
+    if ($prog !== null) return $prog;
+    $z = ustawienie('app_push_od_id', '');
+    if ($z === '') {
+        $z = (string)(int)baza()->query("SELECT COALESCE(MAX(id), 0) FROM rezerwacje WHERE utworzona < NOW() - INTERVAL 4 HOUR")->fetchColumn();
+        zapisz_ustawienie('app_push_od_id', $z);
+    }
+    return $prog = (int)$z;
+}
+
 /** Marki, w których telefony dostają push także o rezerwacjach wpisanych przez zespół (decyzja Michała: Arsenał i SILT). */
 const PUSH_REZERWACJE_ZESPOLU = ['arsenal', 'silt'];
 
@@ -201,7 +222,7 @@ function push_nowa_z_aplikacji(array $u, array $r): void
 }
 
 /**
- * Cron: rezerwacje wpisane przez zespół w PWA (zrodlo = panel) w markach z PUSH_REZERWACJE_ZESPOLU — z ostatnich 2 h,
+ * Cron: rezerwacje wpisane przez zespół w PWA (zrodlo = panel) w markach z PUSH_REZERWACJE_ZESPOLU — nowsze niż prog_push(),
  * których aplikacja jeszcze nie ogłosiła. Do wszystkich telefonów marki (PWA nie wie, z którego telefonu wpisano).
  */
 function wyslij_push_nowe_panel(): array
@@ -213,7 +234,7 @@ function wyslij_push_nowe_panel(): array
          LEFT JOIN uzytkownicy u ON u.id = r.dodana_przez
          LEFT JOIN app_push_wyslane p ON p.rezerwacja_id = r.id
          WHERE r.zrodlo = 'panel' AND r.marka IN ($marki) AND r.status <> 'anulowana' AND p.rezerwacja_id IS NULL
-           AND r.utworzona >= NOW() - INTERVAL 2 HOUR
+           AND r.id > " . prog_push() . "
          ORDER BY r.id"
     )->fetchAll();
     $rezerwacji = 0;
@@ -229,7 +250,7 @@ function wyslij_push_nowe_panel(): array
 
 /**
  * Cron: push o nowych rezerwacjach z formularza www do zalogowanych telefonów tej samej marki.
- * Tylko z ostatnich 2 godzin (po wgraniu nie zasypie starymi), każda rezerwacja raz.
+ * Tylko nowsze niż prog_push() (po wgraniu nie zasypie starymi), każda rezerwacja raz.
  */
 function wyslij_push_nowe_www(): array
 {
@@ -239,7 +260,7 @@ function wyslij_push_nowe_www(): array
          LEFT JOIN atrakcje a ON r.atrakcja_id = a.id
          LEFT JOIN app_push_wyslane p ON p.rezerwacja_id = r.id
          WHERE r.zrodlo = 'formularz_www' AND r.status = 'oczekujaca' AND p.rezerwacja_id IS NULL
-           AND r.utworzona >= NOW() - INTERVAL 2 HOUR
+           AND r.id > " . prog_push() . "
          ORDER BY r.id"
     )->fetchAll();
     $rezerwacji = 0;
