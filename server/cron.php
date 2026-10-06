@@ -8,14 +8,19 @@
 // Uruchamianie (panel LH.pl → Cron, co 5 minut), jedno z dwóch:
 //   php /home/serwer432573/domains/filedops.pl/public_html/rezerwacjaapp/aplikacja-api/cron.php
 //   https://filedops.pl/rezerwacjaapp/aplikacja-api/cron.php?key=CRON_KEY
+// Te same zadania wykonuje też API przy odświeżaniu na telefonach (lib/okresowe.php) — cron jest zapasem.
 // PWA dalej wysyła SMS-y po swojemu — znacznik sms_wyslany w bazie pilnuje, żeby SMS nie poszedł dwa razy.
 // ============================================================
 
 declare(strict_types=1);
 
+// ślad startu jeszcze przed konfiguracją i bazą — w pliku cron-ostatni.log (podgląd przez FTP; z www zablokowany)
+@file_put_contents(__DIR__ . '/cron-ostatni.log', date('Y-m-d H:i:s') . ' start ' . PHP_SAPI . ' PHP ' . PHP_VERSION . "\n");
+
 require_once __DIR__ . '/lib/wspolne.php';
 require_once __DIR__ . '/lib/sms.php';
 require_once __DIR__ . '/lib/push.php';
+require_once __DIR__ . '/lib/okresowe.php';
 
 $zLinii = PHP_SAPI === 'cli';
 if (!$zLinii && (CRON_KEY === '' || !hash_equals(CRON_KEY, (string)($_GET['key'] ?? '')))) {
@@ -23,22 +28,7 @@ if (!$zLinii && (CRON_KEY === '' || !hash_equals(CRON_KEY, (string)($_GET['key']
     exit('Brak dostępu');
 }
 
-try {
-    // ślad, że cron działa (podgląd w Ustawieniach → 🔔 test) — zapisany NA POCZĄTKU, żeby było widać start mimo błędu
-    zapisz_ustawienie('app_cron_ostatnio', date('Y-m-d H:i:s') . ($zLinii ? ' (panel)' : ' (adres)'));
-    $sms = wyslij_sms_nowe_www();
-    $push = wyslij_push_nowe_www();
-    $pushZespol = wyslij_push_nowe_panel();   // rezerwacje wpisane przez zespół w PWA
-    $bledy = [];
-    if (!empty($sms['nieudane'])) $bledy[] = 'SMS: ' . ($sms['blad'] ?? '?');
-    if (!empty($GLOBALS['push_blad'])) $bledy[] = 'push: ' . $GLOBALS['push_blad'];
-    zapisz_ustawienie('app_cron_blad', $bledy ? date('Y-m-d H:i:s') . ' ' . implode(' | ', $bledy) : '');
-    $wynik = ['ok' => true, 'czas' => date('Y-m-d H:i:s'), 'sms' => $sms, 'push' => $push, 'push_zespol' => $pushZespol];
-} catch (Throwable $e) {
-    error_log('Rezerwacje cron: ' . $e->getMessage());
-    try { zapisz_ustawienie('app_cron_blad', date('Y-m-d H:i:s') . ' ' . $e->getMessage()); } catch (Throwable $e2) { /* baza niedostępna */ }
-    $wynik = ['ok' => false, 'msg' => 'Błąd: ' . $e->getMessage()];
-}
+$wynik = wykonaj_okresowe($zLinii ? 'panel' : 'adres');
 
 if ($zLinii) {
     echo json_encode($wynik, JSON_UNESCAPED_UNICODE) . "\n";

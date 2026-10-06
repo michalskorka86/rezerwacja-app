@@ -39,6 +39,7 @@ require_once __DIR__ . '/lib/wynajem.php';
 require_once __DIR__ . '/lib/konto.php';
 require_once __DIR__ . '/lib/bledy.php';
 require_once __DIR__ . '/lib/push.php';
+require_once __DIR__ . '/lib/okresowe.php';
 
 // Wersja www aplikacji (np. na iPhonie) działa z innego adresu — dostęp tylko tokenem, bez ciasteczek.
 header('Access-Control-Allow-Origin: *');
@@ -56,7 +57,15 @@ $odczyt = [
     'ja' => function (array $u) { akcja_ja($u); },
     'dane' => function () { akcja_dane(); },
     'rezerwacje' => function (array $u) { akcja_rezerwacje($u); },
-    'licznik' => function (array $u) { akcja_licznik($u); },
+    'licznik' => function (array $u) {
+        // po wysłaniu odpowiedzi: SMS/push o nowych rezerwacjach (jak PWA przy count_new) — nie czeka na crona
+        register_shutdown_function(function () {
+            if (function_exists('fastcgi_finish_request')) fastcgi_finish_request();
+            elseif (function_exists('litespeed_finish_request')) litespeed_finish_request();
+            okresowe_przy_okazji();
+        });
+        akcja_licznik($u);
+    },
     'wynajmy' => function () { akcja_wynajmy(); },
     'uzytkownicy' => function () { akcja_uzytkownicy(); },
     'zadania' => function () { akcja_zadania(); },

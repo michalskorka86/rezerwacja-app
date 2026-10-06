@@ -1,7 +1,7 @@
 # Rezerwacje — API aplikacji: blokada dostępu do konfiguracji i plików wewnętrznych
 Options -Indexes
 
-<FilesMatch "^(config.*\.php|.*\.sql|.*\.md|.*\.sh)$">
+<FilesMatch "^(config.*\.php|.*\.sql|.*\.md|.*\.sh|.*\.log)$">
   <IfModule mod_authz_core.c>
     Require all denied
   </IfModule>

@@ -87,6 +87,8 @@ foreach (['logi_maili', 'rezerwacje', 'wynajmy', 'zadania', 'uzytkownicy', 'atra
 $pdo->exec('SET FOREIGN_KEY_CHECKS = 1');
 @unlink($MOCK . '/sms.json');
 @unlink($MOCK . '/push.json');
+// SMS/push „przy okazji” licznika wyłączone do testu na końcu (inaczej wcześniejsze testy crona nie miałyby czego wysyłać)
+$pdo->exec("INSERT INTO ustawienia (klucz, wartosc) VALUES ('app_okresowe_api', '2999-01-01 00:00:00')");
 foreach (glob($MOCK . '/mail-*.html') ?: [] as $f) unlink($f);
 
 $pdo->exec("INSERT INTO atrakcje (id, nazwa, kolor, aktywna, kolejnosc) VALUES
@@ -183,7 +185,7 @@ $r = api('rezerwacje', null, ['od' => $od, 'do' => $do, 'filtr' => 'cokolwiek'])
 sprawdz('nieznany filtr → 400', $r['_http'] === 400, $r);
 $r = api('licznik');
 sprawdz('licznik: 2 nowe z www, 0 zadań', ($r['nowe'] ?? -1) === 2 && ($r['zadania'] ?? -1) === 0, $r);
-sprawdz('licznik nie wysyła SMS-ów', smsy() === []);
+sprawdz('licznik (z wyłączonym „przy okazji”) nie wysyła SMS-ów', smsy() === []);
 
 echo "Dodawanie i edycja\n";
 $nowa = ['imie_nazwisko' => 'Kawalerski Piotra', 'telefon' => '+48 511 222 333', 'email' => 'piotr@example.com', 'data' => $jutro,
@@ -466,6 +468,24 @@ $j = json_decode(trim($wyj), true);
 sprawdz('cron z linii poleceń bez curl: SMS i push wysłane', ($j['sms']['wyslane'] ?? 0) === 1 && count(smsy()) === $smsPrzed + 1
     && ($j['push']['telefonow'] ?? 0) >= 1 && ($j['push_zespol'] ?? null) !== null, $wyj);
 sprawdz('cron zapisał start z linii poleceń', strpos((string)$pdo->query("SELECT wartosc FROM ustawienia WHERE klucz = 'app_cron_ostatnio'")->fetchColumn(), '(panel)') !== false);
+
+// bez crona: przy odświeżaniu na telefonie (licznik) API samo wysyła SMS/push o nowych z www — najwyżej raz na minutę
+$smsPrzed = count(smsy());
+$pdo->exec("INSERT INTO rezerwacje (id, klient_imie_nazwisko, klient_telefon, marka, lokalizacja, atrakcja_id, liczba_osob, data_rezerwacji, godzina_start, status, zadatek_status, zrodlo, sms_wyslany)
+  VALUES (180, 'Bez crona', '500600703', 'arsenal', 'rembert', 2, 6, '$za2', '11:00:00', 'oczekujaca', 'brak', 'formularz_www', 0)");
+$pdo->exec("DELETE FROM ustawienia WHERE klucz = 'app_okresowe_api'");
+jako($tPawel);
+$r = api('licznik');
+usleep(300000);
+$p180 = array_filter(pushe(), fn ($w) => ($w['data']['rezerwacja_id'] ?? 0) === 180);
+sprawdz('licznik: odpowiedź od razu + SMS i push o nowej z www bez crona', ($r['ok'] ?? false) === true && count(smsy()) === $smsPrzed + 1 && count($p180) >= 1
+    && strpos((string)$pdo->query("SELECT wartosc FROM ustawienia WHERE klucz = 'app_cron_ostatnio'")->fetchColumn(), '(aplikacja)') !== false, [$r, count(smsy()) - $smsPrzed]);
+$pdo->exec("INSERT INTO rezerwacje (id, klient_imie_nazwisko, klient_telefon, marka, lokalizacja, atrakcja_id, liczba_osob, data_rezerwacji, godzina_start, status, zadatek_status, zrodlo, sms_wyslany)
+  VALUES (181, 'Za szybko', '500600704', 'arsenal', 'rembert', 2, 6, '$za2', '12:00:00', 'oczekujaca', 'brak', 'formularz_www', 0)");
+api('licznik');
+usleep(300000);
+sprawdz('licznik: drugi raz w ciągu minuty nic nie uruchamia', count(smsy()) === $smsPrzed + 1);
+jako($tMichal);
 
 // ── Błędy, APK, wylogowanie ─────────────────────────────────
 echo "Błędy, APK, wylogowanie\n";

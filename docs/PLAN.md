@@ -243,3 +243,7 @@ Nowe tabele jako pliki `server/sql/NNN_*.sql` (wgrywane ręcznie w phpMyAdmin), 
   odświeżaniu licznika) nie jest otwarte — SMS-y robi tylko cron z panelu (php81 z linii poleceń). Poprawki:
   wysyłka HTTP bez wymogu curl (http_post: curl albo strumienie PHP), nieudany SMS cofa znacznik sms_wyslany
   (następny cron ponawia), błąd SMS/push zapisywany w app_cron_blad. Test: cron z linii poleceń bez curl.
+- 06.10 po południu: cron z panelu dalej się nie uruchamia (brak śladu „(panel)”, panel nie pokazuje błędów).
+  Rozwiązanie jak w PWA: zadania okresowe (lib/okresowe.php) uruchamia też API przy akcji licznik — najwyżej raz
+  na minutę dla wszystkich telefonów (blokada app_okresowe_api w bazie), po wysłaniu odpowiedzi. Cron = zapas.
+  cron.php zapisuje cron-ostatni.log jeszcze przed konfiguracją (podgląd przez FTP; .log zablokowany z www).
