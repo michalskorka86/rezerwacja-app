@@ -62,21 +62,10 @@ function akcja_push_test(array $u): void
 /** Jedna wiadomość → [id biletu, błąd]. */
 function push_jeden(array $w): array
 {
-    $ch = curl_init(EXPO_PUSH_URL);
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => json_encode([$w], JSON_UNESCAPED_UNICODE),
-        CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Accept: application/json'],
-        CURLOPT_TIMEOUT => 15, CURLOPT_CONNECTTIMEOUT => 5,
-    ]);
-    $res = curl_exec($ch);
-    $kod = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    $cerr = curl_error($ch);
-    curl_close($ch);
-    if ($res === false) return ['', 'brak połączenia z Expo (' . $cerr . ')'];
-    $j = json_decode((string)$res, true);
-    $d = $j['data'][0] ?? null;
-    if ($kod >= 400 || !$d) return ['', 'HTTP ' . $kod . ' ' . mb_substr((string)$res, 0, 300)];
+    $r = http_post(EXPO_PUSH_URL, json_encode([$w], JSON_UNESCAPED_UNICODE), ['Content-Type: application/json', 'Accept: application/json']);
+    if ($r['tresc'] === null) return ['', 'brak połączenia z Expo (' . $r['blad'] . ')'];
+    $d = json_decode($r['tresc'], true)['data'][0] ?? null;
+    if ($r['kod'] >= 400 || !$d) return ['', 'HTTP ' . $r['kod'] . ' ' . mb_substr($r['tresc'], 0, 300)];
     if (($d['status'] ?? '') !== 'ok') return ['', ($d['message'] ?? '') . ' ' . json_encode($d['details'] ?? null)];
     return [(string)($d['id'] ?? ''), ''];
 }
@@ -84,15 +73,7 @@ function push_jeden(array $w): array
 /** Wynik doręczenia do Firebase: '' = jeszcze nie wiadomo, 'ok' albo opis błędu. */
 function push_potwierdzenie(string $id): string
 {
-    $ch = curl_init(EXPO_POTWIERDZENIA_URL);
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => json_encode(['ids' => [$id]]),
-        CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Accept: application/json'],
-        CURLOPT_TIMEOUT => 10, CURLOPT_CONNECTTIMEOUT => 5,
-    ]);
-    $res = curl_exec($ch);
-    curl_close($ch);
+    $res = http_post(EXPO_POTWIERDZENIA_URL, json_encode(['ids' => [$id]]), ['Content-Type: application/json', 'Accept: application/json'], 10)['tresc'];
     $r = json_decode((string)$res, true)['data'][$id] ?? null;
     if (!$r) return '';
     if (($r['status'] ?? '') === 'ok') return 'ok — Firebase przyjął, powiadomienie powinno być na telefonie.';
@@ -104,20 +85,11 @@ function wyslij_push(array $wiadomosci): int
 {
     $ok = 0;
     foreach (array_chunk($wiadomosci, 100) as $paczka) {
-        $ch = curl_init(EXPO_PUSH_URL);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_POST => true,
-            CURLOPT_POSTFIELDS => json_encode($paczka, JSON_UNESCAPED_UNICODE),
-            CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'Accept: application/json'],
-            CURLOPT_TIMEOUT => 15,
-            CURLOPT_CONNECTTIMEOUT => 5,
-        ]);
-        $res = curl_exec($ch);
-        $kod = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-        if ($res === false || $kod >= 400) {
-            error_log('Rezerwacje push: HTTP ' . $kod);
+        $r = http_post(EXPO_PUSH_URL, json_encode($paczka, JSON_UNESCAPED_UNICODE), ['Content-Type: application/json', 'Accept: application/json']);
+        $res = $r['tresc'];
+        if ($res === null || $r['kod'] >= 400) {
+            $GLOBALS['push_blad'] = $r['blad'] !== '' ? $r['blad'] : 'Expo: HTTP ' . $r['kod'];
+            error_log('Rezerwacje push: ' . $GLOBALS['push_blad']);
             continue;
         }
         $wyniki = json_decode((string)$res, true)['data'] ?? [];

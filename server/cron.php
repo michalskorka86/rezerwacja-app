@@ -29,7 +29,10 @@ try {
     $sms = wyslij_sms_nowe_www();
     $push = wyslij_push_nowe_www();
     $pushZespol = wyslij_push_nowe_panel();   // rezerwacje wpisane przez zespół w PWA
-    zapisz_ustawienie('app_cron_blad', '');
+    $bledy = [];
+    if (!empty($sms['nieudane'])) $bledy[] = 'SMS: ' . ($sms['blad'] ?? '?');
+    if (!empty($GLOBALS['push_blad'])) $bledy[] = 'push: ' . $GLOBALS['push_blad'];
+    zapisz_ustawienie('app_cron_blad', $bledy ? date('Y-m-d H:i:s') . ' ' . implode(' | ', $bledy) : '');
     $wynik = ['ok' => true, 'czas' => date('Y-m-d H:i:s'), 'sms' => $sms, 'push' => $push, 'push_zespol' => $pushZespol];
 } catch (Throwable $e) {
     error_log('Rezerwacje cron: ' . $e->getMessage());

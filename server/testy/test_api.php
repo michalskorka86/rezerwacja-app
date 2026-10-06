@@ -457,6 +457,16 @@ sprawdz('push: próbne powiadomienie + potwierdzenie i stan crona', ($r['wyslano
     && ($r['diagnoza']['cron_ostatnio'] ?? '') !== '' && ($r['diagnoza']['ostatnia_www']['id'] ?? 0) > 0, $r);
 jako($tMichal);
 
+// cron z panelu LH.pl = PHP z linii poleceń, czasem bez curl → wysyłka przez strumienie PHP
+$smsPrzed = count(smsy());
+$pdo->exec("INSERT INTO rezerwacje (id, klient_imie_nazwisko, klient_telefon, marka, lokalizacja, atrakcja_id, liczba_osob, data_rezerwacji, godzina_start, status, zadatek_status, zrodlo, sms_wyslany)
+  VALUES (170, 'Bez curl', '500600702', 'arsenal', 'wolomin', 2, 7, '$za2', '10:00:00', 'oczekujaca', 'brak', 'formularz_www', 0)");
+$wyj = (string)shell_exec(escapeshellarg(PHP_BINARY) . ' -d disable_functions=curl_init,curl_exec ' . escapeshellarg(__DIR__ . '/../cron.php') . ' 2>&1');
+$j = json_decode(trim($wyj), true);
+sprawdz('cron z linii poleceń bez curl: SMS i push wysłane', ($j['sms']['wyslane'] ?? 0) === 1 && count(smsy()) === $smsPrzed + 1
+    && ($j['push']['telefonow'] ?? 0) >= 1 && ($j['push_zespol'] ?? null) !== null, $wyj);
+sprawdz('cron zapisał start z linii poleceń', strpos((string)$pdo->query("SELECT wartosc FROM ustawienia WHERE klucz = 'app_cron_ostatnio'")->fetchColumn(), '(panel)') !== false);
+
 // ── Błędy, APK, wylogowanie ─────────────────────────────────
 echo "Błędy, APK, wylogowanie\n";
 jako('');

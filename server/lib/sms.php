@@ -24,33 +24,29 @@ function sms_dla_marki(string $marka): bool
     return ($marka === 'silt' && $s['sms_silt']) || ($marka === 'arsenal' && $s['sms_arsenal']);
 }
 
+/** Ostatni błąd wysyłki SMS (do logu crona i testu w aplikacji). */
+$GLOBALS['sms_blad'] = '';
+
 /** SMS do zespołu (numer WA_PHONE z config.php PWA). Zwraca true, gdy SMSAPI przyjęło. Nigdy nie rzuca. */
 function wyslij_sms_zespol(string $tresc): bool
 {
-    if (SMSAPI_TOKEN === '' || WA_PHONE === '') return false;
-    $ch = curl_init(SMSAPI_URL);
-    curl_setopt_array($ch, [
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_POST => true,
-        CURLOPT_POSTFIELDS => http_build_query([
-            'to' => WA_PHONE,
-            'message' => $tresc,
-            'encoding' => 'utf-8',
-            'format' => 'json',
-        ]),
-        CURLOPT_HTTPHEADER => ['Authorization: Bearer ' . SMSAPI_TOKEN],
-        CURLOPT_TIMEOUT => 10,
-        CURLOPT_CONNECTTIMEOUT => 5,
-    ]);
-    $res = curl_exec($ch);
-    $kod = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-    if ($res === false || $kod >= 400) {
-        error_log('Rezerwacje SMS: HTTP ' . $kod);
+    if (SMSAPI_TOKEN === '' || WA_PHONE === '') {
+        $GLOBALS['sms_blad'] = 'brak SMSAPI_TOKEN lub WA_PHONE w config.php';
         return false;
     }
-    $j = json_decode((string)$res, true);
-    return !isset($j['error']);
+    $r = http_post(SMSAPI_URL, http_build_query([
+        'to' => WA_PHONE,
+        'message' => $tresc,
+        'encoding' => 'utf-8',
+        'format' => 'json',
+    ]), ['Authorization: Bearer ' . SMSAPI_TOKEN, 'Content-Type: application/x-www-form-urlencoded'], 10);
+    $j = json_decode((string)$r['tresc'], true);
+    if ($r['tresc'] === null || $r['kod'] >= 400 || isset($j['error'])) {
+        $GLOBALS['sms_blad'] = $r['blad'] !== '' ? $r['blad'] : 'SMSAPI: HTTP ' . $r['kod'] . ' ' . mb_substr((string)$r['tresc'], 0, 150);
+        error_log('Rezerwacje SMS: ' . $GLOBALS['sms_blad']);
+        return false;
+    }
+    return true;
 }
 
 /** Mail do klienta z kopią do biura — jak wyslij_mail() z auth.php PWA. */
@@ -118,6 +114,7 @@ function wyslij_sms_nowe_www(): array
     )->fetchAll();
     $wyslane = 0;
     $pominiete = 0;
+    $nieudane = 0;
     foreach ($nowe as $r) {
         // znacznik PRZED wysyłką i tylko jeśli nikt (np. PWA) nie zdążył go ustawić — bez podwójnych SMS-ów
         $st = $pdo->prepare('UPDATE rezerwacje SET sms_wyslany = 1 WHERE id = ? AND sms_wyslany = 0');
@@ -127,9 +124,15 @@ function wyslij_sms_nowe_www(): array
             $pominiete++;
             continue;
         }
-        if (wyslij_sms_zespol(tresc_sms_nowa_www($r))) $wyslane++;
+        if (wyslij_sms_zespol(tresc_sms_nowa_www($r))) {
+            $wyslane++;
+        } else {
+            // Poprawka: nieudany SMS nie ginie — znacznik z powrotem, następny cron spróbuje jeszcze raz
+            $pdo->prepare('UPDATE rezerwacje SET sms_wyslany = 0 WHERE id = ?')->execute([$r['id']]);
+            $nieudane++;
+        }
     }
-    return ['wyslane' => $wyslane, 'pominiete' => $pominiete];
+    return ['wyslane' => $wyslane, 'pominiete' => $pominiete, 'nieudane' => $nieudane] + ($nieudane ? ['blad' => $GLOBALS['sms_blad']] : []);
 }
 
 function akcja_sms_ustawienia(array $u): void

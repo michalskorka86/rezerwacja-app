@@ -99,6 +99,38 @@ function ustawienie(string $klucz, string $domyslna = ''): string
     return $v === false ? $domyslna : (string)$v;
 }
 
+/**
+ * POST przez HTTP → ['kod' => int, 'tresc' => string|null, 'blad' => string]. Nigdy nie rzuca.
+ * Poprawka: cron w panelu LH.pl uruchamia PHP z linii poleceń, gdzie może brakować rozszerzenia curl —
+ * wtedy wysyłamy przez strumienie PHP (to samo, bez curl).
+ */
+function http_post(string $url, string $tresc, array $naglowki, int $czas = 15): array
+{
+    if (function_exists('curl_init')) {
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true, CURLOPT_POSTFIELDS => $tresc,
+            CURLOPT_HTTPHEADER => $naglowki, CURLOPT_TIMEOUT => $czas, CURLOPT_CONNECTTIMEOUT => 5,
+        ]);
+        $res = curl_exec($ch);
+        $kod = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $blad = $res === false ? 'curl: ' . curl_error($ch) : '';
+        curl_close($ch);
+        return ['kod' => $kod, 'tresc' => $res === false ? null : (string)$res, 'blad' => $blad];
+    }
+    $kontekst = stream_context_create(['http' => [
+        'method' => 'POST', 'header' => implode("\r\n", $naglowki), 'content' => $tresc,
+        'timeout' => $czas, 'ignore_errors' => true,
+    ]]);
+    $res = @file_get_contents($url, false, $kontekst);
+    $kod = 0;
+    foreach ($http_response_header ?? [] as $h) {
+        if (preg_match('#^HTTP/\S+\s+(\d{3})#', $h, $m)) $kod = (int)$m[1];
+    }
+    $e = error_get_last();
+    return ['kod' => $kod, 'tresc' => $res === false ? null : $res, 'blad' => $res === false ? 'brak połączenia (' . ($e['message'] ?? '?') . ')' : ''];
+}
+
 /** Zapis wiersza w tabeli ustawienia (tylko klucze app_… i sms_… — wiersze, nie struktura tabeli PWA). */
 function zapisz_ustawienie(string $klucz, string $wartosc): void
 {

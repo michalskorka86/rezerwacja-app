@@ -239,3 +239,7 @@ Nowe tabele jako pliki `server/sql/NNN_*.sql` (wgrywane ręcznie w phpMyAdmin), 
 - 05.10 wieczorem: rezerwacja z www bez powiadomienia. Poprawka: zamiast okna „ostatnie 2 h” (wrażliwe na różnicę
   zegarów PHP/bazy) próg numeru rezerwacji app_push_od_id; cron zapisuje start i błąd (app_cron_ostatnio,
   app_cron_blad) — widać w teście powiadomień.
+- 06.10: SMS o rezerwacjach z www też nie dochodziły. Odkąd zespół używa aplikacji, PWA (które wysyłało SMS przy
+  odświeżaniu licznika) nie jest otwarte — SMS-y robi tylko cron z panelu (php81 z linii poleceń). Poprawki:
+  wysyłka HTTP bez wymogu curl (http_post: curl albo strumienie PHP), nieudany SMS cofa znacznik sms_wyslany
+  (następny cron ponawia), błąd SMS/push zapisywany w app_cron_blad. Test: cron z linii poleceń bez curl.
