@@ -15,9 +15,10 @@ bazy i z `config.php` PWA, ale **żadnego pliku PWA nie zmienia**. PWA działa d
    **Nie wgrywaj** folderów `testy/` i `sql/` ani `README.md`.
 3. **Konfiguracja.** Na serwerze skopiuj `config.example.php` jako `config.php` (w tym samym folderze) i wpisz
    `CRON_KEY` — długi losowy ciąg (np. 40 liter i cyfr). Hasło do bazy, SMTP i SMSAPI są brane z `config.php` PWA.
-4. **Cron co 5 minut** (panel LH.pl → Cron → Dodaj):
-   `php /home/serwer432573/domains/filedops.pl/public_html/rezerwacjaapp/aplikacja-api/cron.php`
-   (albo adres: `https://filedops.pl/rezerwacjaapp/aplikacja-api/cron.php?key=CRON_KEY`).
+4. **Cron co 5 minut** (panel LH.pl → Cron → Dodaj), harmonogram `*/5 * * * *`, polecenie przez adres www
+   (tak jak cron SILT Listy — wariant `php /ścieżka/cron.php` w panelu LH.pl się NIE uruchamiał):
+   `curl https://filedops.pl/rezerwacjaapp/aplikacja-api/cron.php?key=CRON_KEY`
+   Sprawdzenie: plik `cron-ostatni.log` (FTP) albo w aplikacji Ustawienia → „🔔 Wyślij próbne powiadomienie” → „Cron ostatnio”.
    Wysyła SMS-y o nowych rezerwacjach z formularza www — także wtedy, gdy nikt nie ma otwartego PWA.
    PWA dalej wysyła je po swojemu; znacznik w bazie pilnuje, żeby SMS nie poszedł dwa razy.
    Ten sam cron wysyła powiadomienia push „🆕 Nowa rezerwacja z www” na telefony zespołu tej marki

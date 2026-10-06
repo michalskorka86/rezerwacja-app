@@ -5,9 +5,8 @@
 //   Powiadomienia push o tych samych rezerwacjach do telefonów zespołu danej marki,
 //   a także o rezerwacjach wpisanych przez zespół w PWA (z aplikacji idą od razu przy zapisie).
 //
-// Uruchamianie (panel LH.pl → Cron, co 5 minut), jedno z dwóch:
-//   php /home/serwer432573/domains/filedops.pl/public_html/rezerwacjaapp/aplikacja-api/cron.php
-//   https://filedops.pl/rezerwacjaapp/aplikacja-api/cron.php?key=CRON_KEY
+// Uruchamianie: panel LH.pl → Cron, co 5 minut, przez adres (tak działa; wariant „php /ścieżka” w panelu nie ruszał):
+//   curl https://filedops.pl/rezerwacjaapp/aplikacja-api/cron.php?key=CRON_KEY
 // Te same zadania wykonuje też API przy odświeżaniu na telefonach (lib/okresowe.php) — cron jest zapasem.
 // PWA dalej wysyła SMS-y po swojemu — znacznik sms_wyslany w bazie pilnuje, żeby SMS nie poszedł dwa razy.
 // ============================================================

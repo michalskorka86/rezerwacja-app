@@ -247,3 +247,5 @@ Nowe tabele jako pliki `server/sql/NNN_*.sql` (wgrywane ręcznie w phpMyAdmin), 
   Rozwiązanie jak w PWA: zadania okresowe (lib/okresowe.php) uruchamia też API przy akcji licznik — najwyżej raz
   na minutę dla wszystkich telefonów (blokada app_okresowe_api w bazie), po wysłaniu odpowiedzi. Cron = zapas.
   cron.php zapisuje cron-ostatni.log jeszcze przed konfiguracją (podgląd przez FTP; .log zablokowany z www).
+- 06.10 16:20: cron DZIAŁA — wpis w panelu jak w SILT Liście: `*/5 * * * *` `curl https://filedops.pl/rezerwacjaapp/
+  aplikacja-api/cron.php?key=…` (cron-ostatni.log: „start fpm-fcgi PHP 8.4”). Wariant `php81 php /ścieżka` nie ruszał.
