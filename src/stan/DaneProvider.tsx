@@ -22,6 +22,11 @@ const PELNE_CO_MS = 10 * 60 * 1000;
 /** Całe odświeżanie (kilka zapytań) nie może trwać dłużej — inaczej „zawieszone” połączenie blokowałoby kolejne próby. */
 const LIMIT_MS = 40 * 1000;
 
+/** Odstępy kolejnych prób przy braku sieci. */
+const PONOWIENIA_MS = [2000, 5000, 10000];
+/** Najdłużej, ile może trwać jedno odświeżanie razem z ponowieniami — potem uznajemy je za zawieszone. */
+const MAX_ODSWIEZANIE_MS = LIMIT_MS * (PONOWIENIA_MS.length + 1) + PONOWIENIA_MS.reduce((a, b) => a + b, 0) + 5000;
+
 const czekaj = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 function zLimitem<T>(p: Promise<T>, ms: number): Promise<T> {
@@ -95,20 +100,23 @@ export function DaneProvider({ children }: { children: ReactNode }) {
   const odswiez = useCallback(
     async (pelne = false): Promise<boolean> => {
       // Poprawka: wcześniej „zawieszone” zapytanie blokowało odświeżanie do ponownego uruchomienia aplikacji.
-      if ((trwaOd.current && Date.now() - trwaOd.current < LIMIT_MS + 5000) || !(await token())) return false;
+      if ((trwaOd.current && Date.now() - trwaOd.current < MAX_ODSWIEZANIE_MS) || !(await token())) return false;
       const moje = Date.now();
       trwaOd.current = moje;
       setOdswiezam(true);
       const czyPelne = pelne || Date.now() - ostatniePelne.current > PELNE_CO_MS;
       try {
+        // Po wybudzeniu telefonu sieć wstaje z opóźnieniem (w logu: „Unable to resolve host”, „connection abort”,
+        // zerwane połączenie HTTP/2) — kilka prób w odstępach, zanim pokażemy pasek „Brak połączenia”.
         let nowe;
-        try {
-          nowe = await zLimitem(pobierzZSerwera(db, klient, czyPelne), LIMIT_MS);
-        } catch (e) {
-          // po wybudzeniu telefonu sieć często wstaje sekundę później — jedna ponowna próba, zanim pokażemy pasek
-          if (!toBrakSieci(e)) throw e;
-          await czekaj(2500);
-          nowe = await zLimitem(pobierzZSerwera(db, klient, czyPelne), LIMIT_MS);
+        for (let proba = 0; ; proba++) {
+          try {
+            nowe = await zLimitem(pobierzZSerwera(db, klient, czyPelne), LIMIT_MS);
+            break;
+          } catch (e) {
+            if (!toBrakSieci(e) || proba >= PONOWIENIA_MS.length) throw e;
+            await czekaj(PONOWIENIA_MS[proba]);
+          }
         }
         if (czyPelne) ostatniePelne.current = Date.now();
         setStan((s) => ({ ...s, ...nowe }));
@@ -163,7 +171,8 @@ export function DaneProvider({ children }: { children: ReactNode }) {
     let zegar: ReturnType<typeof setInterval> | null = setInterval(() => odswiez(), CO_MS);
     const sub = AppState.addEventListener('change', (s) => {
       if (s === 'active') {
-        odswiez();
+        // chwila dla sieci po wybudzeniu telefonu
+        setTimeout(() => odswiez(), 1500);
         if (!zegar) zegar = setInterval(() => odswiez(), CO_MS);
       } else if (zegar) {
         clearInterval(zegar);

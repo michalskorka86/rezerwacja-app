@@ -60,8 +60,11 @@ export async function zarejestrujPush(wymus = false): Promise<WynikPush> {
     const projectId = Constants.expoConfig?.extra?.eas?.projectId as string | undefined;
     token = (await Notifications.getExpoPushTokenAsync(projectId ? { projectId } : undefined)).data;
   } catch (e) {
-    // zwykle: brak usług Google Play albo problem z Firebase
-    zglos(e, { dopisek: 'Powiadomienia (adres telefonu)' });
+    // chwilowy brak sieci (np. zaraz po wybudzeniu telefonu) — nie zaśmiecamy logu, spróbujemy przy następnym starcie;
+    // zgłaszamy tylko inne problemy (brak usług Google Play, Firebase)
+    if (!/UnknownHost|SocketException|SocketTimeout|SETTINGS preface|ConnectException|timeout|Network request failed/i.test(String(e))) {
+      zglos(e, { dopisek: 'Powiadomienia (adres telefonu)' });
+    }
     return { ok: false, krok: 'adres', blad: e instanceof Error ? e.message : String(e) };
   }
   if (!wymus && token === zarejestrowano) return { ok: true, token };

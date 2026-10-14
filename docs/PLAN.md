@@ -249,3 +249,7 @@ Nowe tabele jako pliki `server/sql/NNN_*.sql` (wgrywane ręcznie w phpMyAdmin), 
   cron.php zapisuje cron-ostatni.log jeszcze przed konfiguracją (podgląd przez FTP; .log zablokowany z www).
 - 06.10 16:20: cron DZIAŁA — wpis w panelu jak w SILT Liście: `*/5 * * * *` `curl https://filedops.pl/rezerwacjaapp/
   aplikacja-api/cron.php?key=…` (cron-ostatni.log: „start fpm-fcgi PHP 8.4”). Wariant `php81 php /ścieżka` nie ruszał.
+- 14.10: log z telefonu Michała po wybudzeniu: „Unable to resolve host”, „Software caused connection abort”,
+  „Required SETTINGS preface not received” (sieć wstaje z opóźnieniem / zerwane połączenie). Odświeżanie: start 1,5 s
+  po powrocie do aplikacji, ponowienia po 2 / 5 / 10 s przed paskiem „Brak połączenia”; chwilowe błędy sieci przy
+  rejestracji powiadomień nie trafiają już do logu.
