@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useRef, useState, type ReactNode 
 import {
   Animated,
   Easing,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -9,6 +10,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   useWindowDimensions,
   View,
   type StyleProp,
@@ -77,6 +79,7 @@ export function Arkusz({
   // otwarcie: od razu w tym samym renderze (zamknięcie czeka na koniec animacji)
   if (widoczny && !pokaz) setPokaz(true);
   const przewijanie = useRef<ScrollView>(null);
+  const znacznik = useRef<View>(null);
   const wstecz = useRef<(() => void) | null>(null);
   const [api] = useState<ArkuszApi>(() => ({
     naGore: () => przewijanie.current?.scrollTo({ y: 0, animated: false }),
@@ -94,6 +97,32 @@ export function Arkusz({
     }
   }, [widoczny, anim, nazwa]);
 
+  // Android (aplikacja rysowana pod paskami systemu): klawiatura nie zmniejsza okna, więc arkusz sam podnosi się
+  // nad klawiaturę i przewija tak, żeby pole, w którym się pisze, było widać (np. „Instrukcje dla instruktora”).
+  const [klawiatura, setKlawiatura] = useState(0);
+  useEffect(() => {
+    if (Platform.OS !== 'android' || !pokaz) return;
+    const pokazana = Keyboard.addListener('keyboardDidShow', (e) => {
+      setKlawiatura(e.endCoordinates.height);
+      setTimeout(() => {
+        const pole = TextInput.State.currentlyFocusedInput();
+        const sv = przewijanie.current;
+        if (!pole || !sv) return;
+        const poczatek = znacznik.current;
+        if (!poczatek) return;
+        // położenia w oknie (działa w nowej architekturze RN): pole względem początku treści arkusza
+        poczatek.measureInWindow((_x, gora) => {
+          pole.measureInWindow((_px, poleY) => sv.scrollTo({ y: Math.max(0, poleY - gora - 90), animated: true }));
+        });
+      }, 80);
+    });
+    const schowana = Keyboard.addListener('keyboardDidHide', () => setKlawiatura(0));
+    return () => {
+      pokazana.remove();
+      schowana.remove();
+    };
+  }, [pokaz]);
+
   if (!pokaz) return null;
   const przesun = anim.interpolate({ inputRange: [0, 1], outputRange: [height, 0] });
 
@@ -104,7 +133,15 @@ export function Arkusz({
           <Pressable style={styles.flex} onPress={onZamknij} accessibilityLabel="Zamknij" />
         </Animated.View>
         <Animated.View
-          style={[styles.arkusz, { maxHeight: height * wysokosc, transform: [{ translateY: przesun }], paddingBottom: stopka ? 0 : insets.bottom }]}>
+          style={[
+            styles.arkusz,
+            {
+              bottom: klawiatura,
+              maxHeight: Math.max(height * wysokosc - klawiatura, 200),
+              transform: [{ translateY: przesun }],
+              paddingBottom: stopka || klawiatura ? 0 : insets.bottom,
+            },
+          ]}>
           {bezNaglowka ? null : (
             <View style={styles.hdr}>
               {typeof tytul === 'string' || tytul === undefined ? (
@@ -122,9 +159,10 @@ export function Arkusz({
             style={styles.scroll}
             contentContainerStyle={bezPaddingu ? { paddingBottom: 40 } : styles.body}
             keyboardShouldPersistTaps="handled">
+            <View ref={znacznik} collapsable={false} />
             <ArkuszKontekst.Provider value={api}>{children}</ArkuszKontekst.Provider>
           </ScrollView>
-          {stopka ? <View style={[styles.stopka, { paddingBottom: 10 + insets.bottom }]}>{stopka}</View> : null}
+          {stopka ? <View style={[styles.stopka, { paddingBottom: 10 + (klawiatura ? 0 : insets.bottom) }]}>{stopka}</View> : null}
         </Animated.View>
         <WarstwaKomunikatow />
       </KeyboardAvoidingView>

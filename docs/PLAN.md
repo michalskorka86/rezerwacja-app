@@ -253,3 +253,6 @@ Nowe tabele jako pliki `server/sql/NNN_*.sql` (wgrywane ręcznie w phpMyAdmin), 
   „Required SETTINGS preface not received” (sieć wstaje z opóźnieniem / zerwane połączenie). Odświeżanie: start 1,5 s
   po powrocie do aplikacji, ponowienia po 2 / 5 / 10 s przed paskiem „Brak połączenia”; chwilowe błędy sieci przy
   rejestracji powiadomień nie trafiają już do logu.
+- 14.10: (1) edycja rezerwacji z PWA: koniec 00:00:00 (tak PWA zapisuje puste „do”) = „bez godziny zakończenia”
+  (formularz, karty, serwer) — zapis już nie zgłasza „zakończenie przed rozpoczęciem”. (2) Android: arkusz podnosi się nad
+  klawiaturę i przewija do pola, w którym się pisze (Modal + edge-to-edge nie zmniejsza okna).

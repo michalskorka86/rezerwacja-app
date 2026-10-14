@@ -3,7 +3,7 @@
  * Bez importów React Native — testy w Node.
  */
 
-import { formatGodz } from './daty';
+import { formatGodz, godzinaKonca } from './daty';
 import type { Lokalizacja, Marka, Rezerwacja } from './typy';
 
 export type TrybFormularza = { rodzaj: 'nowa' } | { rodzaj: 'edycja'; r: Rezerwacja } | { rodzaj: 'kopia'; r: Rezerwacja };
@@ -74,7 +74,7 @@ export function stanPoczatkowy(tryb: TrybFormularza, marka: Marka): StanFormular
     potwierdzona: r.status === 'potwierdzona',
     data: r.data_rezerwacji,
     od: r.godzina_start ? formatGodz(r.godzina_start) : null,
-    do: r.godzina_koniec ? formatGodz(r.godzina_koniec) : null,
+    do: godzinaKonca(r.godzina_koniec),
     zadatek: r.zadatek_status === 'oplacony',
   };
 }

@@ -11,6 +11,7 @@ import {
   stanPoczatkowy,
   tytulFormularza,
 } from '../src/logika/formularz';
+import { godziny } from '../src/logika/daty';
 import type { Rezerwacja } from '../src/logika/typy';
 
 const r: Rezerwacja = {
@@ -111,4 +112,12 @@ test('godziny, dodatki, zmiany', () => {
   assert.ok(!czyZmieniony({ ...p }, p));
   assert.ok(czyZmieniony({ ...p, imie: 'x' }, p));
   assert.ok(!czyZmieniony({ ...p, lokalizacja: 'wolomin' }, p));
+});
+
+test('edycja: koniec 00:00 z PWA = bez godziny zakończenia (zapis bez błędu)', () => {
+  const s = stanPoczatkowy({ rodzaj: 'edycja', r: { ...r, godzina_start: '09:00:00', godzina_koniec: '00:00:00' } }, 'arsenal');
+  assert.equal(s.do, null);
+  assert.equal(bladFormularza(s, 'arsenal'), null);
+  assert.equal(godziny('09:00:00', '00:00:00'), '09:00');
+  assert.equal(godziny('09:00:00', '12:30:00'), '09:00–12:30');
 });

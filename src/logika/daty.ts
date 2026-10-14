@@ -36,8 +36,19 @@ export function formatGodz(t: string | null | undefined): string {
 }
 
 /** '09:00' i '11:30' → '09:00–11:30' (bez końca: samo '09:00') */
-export const godziny = (od: string | null, doG: string | null, sep = '–') =>
-  formatGodz(od) + (doG ? sep + formatGodz(doG) : '');
+/**
+ * Godzina zakończenia albo null. PWA przy pustym polu „do” zapisywało w bazie 00:00:00 — to znaczy „bez godziny zakończenia”,
+ * nie północ (inaczej edycja takiej rezerwacji kończyła się błędem „zakończenie przed rozpoczęciem”).
+ */
+export const godzinaKonca = (t: string | null | undefined): string | null => {
+  const g = formatGodz(t);
+  return g && g !== '00:00' ? g : null;
+};
+
+export const godziny = (od: string | null, doG: string | null, sep = '–') => {
+  const k = godzinaKonca(doG);
+  return formatGodz(od) + (k ? sep + k : '');
+};
 
 /** '2026-10-02' → '2 paź' */
 export function krotkaData(ds: string): string {

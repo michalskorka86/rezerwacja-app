@@ -20,6 +20,8 @@ function rezerwacja_dla_aplikacji(array $r, array $u): array
     }
     foreach (['sms_wyslany', 'mail_zadatek_wyslany', 'mail_potw_wyslany'] as $k) $r[$k] = !empty($r[$k]);
     $r['zadatek_kwota'] = (float)$r['zadatek_kwota'];
+    // PWA zapisuje puste „do” jako 00:00:00 — dla aplikacji to „bez godziny zakończenia”
+    if (($r['godzina_koniec'] ?? null) === '00:00:00') $r['godzina_koniec'] = null;
     unset($r['dodatki_json']);
     $r['dodatki'] = is_array($dodatki) ? array_values(array_map('intval', $dodatki)) : [];
     $r['kolor_karty'] = $wlasna ? ($r['atrakcja_kolor'] ?? '#888') : OTHER_COLOR;
