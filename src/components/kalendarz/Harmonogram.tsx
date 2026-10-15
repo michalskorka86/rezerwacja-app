@@ -9,7 +9,11 @@ import type { Rezerwacja } from '@/logika/typy';
 
 import { KartaRezerwacji } from './KartaRezerwacji';
 
-export type HarmonogramRef = { przewinDo: (ds: string, animacja?: boolean) => boolean };
+export type HarmonogramRef = {
+  przewinDo: (ds: string, animacja?: boolean) => boolean;
+  /** czy pracownik sam przewijał listę od ostatniego „przewiń do” (wtedy nie skaczemy mu pod palcem) */
+  czyReczne: () => boolean;
+};
 
 /**
  * Widok „Tydzień” (.schedule): dzień po dniu — kolumna z datą (dziś w czarnym kółku, święta na czerwono)
@@ -24,6 +28,8 @@ export const Harmonogram = forwardRef<HarmonogramRef, {
   pustyTekst?: string;
 }>(function Harmonogram({ dni, dzis, nazwyDodatkow, onRezerwacja, naglowek, pustyTekst }, ref) {
   const lista = useRef<FlatList<DzienHarmonogramu>>(null);
+  const reczne = useRef(false);
+  const proby = useRef(0);
 
   useImperativeHandle(
     ref,
@@ -31,9 +37,12 @@ export const Harmonogram = forwardRef<HarmonogramRef, {
       przewinDo: (ds, animacja = true) => {
         const i = dni.findIndex((d) => d.data === ds);
         if (i < 0) return false;
+        reczne.current = false;
+        proby.current = 0;
         lista.current?.scrollToIndex({ index: i, viewPosition: 0.4, animated: animacja });
         return true;
       },
+      czyReczne: () => reczne.current,
     }),
     [dni],
   );
@@ -55,10 +64,14 @@ export const Harmonogram = forwardRef<HarmonogramRef, {
       contentContainerStyle={styles.lista}
       initialNumToRender={20}
       windowSize={11}
+      onScrollBeginDrag={() => {
+        reczne.current = true;
+      }}
       onScrollToIndexFailed={(info) => {
-        // wiersze mają różną wysokość — najpierw w przybliżone miejsce, potem dokładnie
+        // wiersze mają różną wysokość — najpierw w przybliżone miejsce, potem dokładnie (kilka prób, aż wiersz się narysuje)
+        if (proby.current++ > 6) return;
         lista.current?.scrollToOffset({ offset: info.averageItemLength * info.index, animated: false });
-        setTimeout(() => lista.current?.scrollToIndex({ index: info.index, viewPosition: 0.4, animated: false }), 120);
+        setTimeout(() => lista.current?.scrollToIndex({ index: info.index, viewPosition: 0.4, animated: false }), 150);
       }}
     />
   );

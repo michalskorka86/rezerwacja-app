@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { AppState, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PasekNowejWersji } from '@/components/Aktualizacje';
@@ -76,6 +76,40 @@ export default function Kalendarz() {
     const t = setTimeout(() => harmonogram.current?.przewinDo(dzis, false), 150);
     return () => clearTimeout(t);
   }, [dni.length, dzis, filtr, widok]);
+
+  // pierwsze świeże dane z serwera po starcie mogą dołożyć dni nad dzisiejszym i przesunąć listę — wróć na dziś
+  // (tylko raz; nie, gdy pracownik już sam przewija albo wybrał inny dzień)
+  const pierwszePobrano = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (pierwszePobrano.current === undefined) {
+      pierwszePobrano.current = pobrano; // stan z pamięci telefonu przy starcie
+      return;
+    }
+    if (pierwszePobrano.current === 'gotowe' || pobrano === pierwszePobrano.current || widok !== 'tydzien') return;
+    pierwszePobrano.current = 'gotowe';
+    const t = setTimeout(() => {
+      if (!harmonogram.current?.czyReczne()) harmonogram.current?.przewinDo(dzisStr(), false);
+    }, 250);
+    return () => clearTimeout(t);
+  }, [pobrano, widok]);
+
+  // powrót do aplikacji po dłuższej przerwie (≥ 5 min) — jak przy otwarciu: dzisiejszy dzień
+  useEffect(() => {
+    let wTle: number | null = null;
+    const sub = AppState.addEventListener('change', (st) => {
+      if (st === 'background') wTle = Date.now();
+      else if (st === 'active' && wTle !== null) {
+        const dlugo = Date.now() - wTle >= 5 * 60 * 1000;
+        wTle = null;
+        if (!dlugo) return;
+        const d = dzisStr();
+        setDzis(d);
+        setMiesiacWidoku(miesiac(d));
+        setTimeout(() => harmonogram.current?.przewinDo(d, false), 300);
+      }
+    });
+    return () => sub.remove();
+  }, []);
 
   const naRezerwacje = useCallback((r: Rezerwacja) => setWybrana(r), []);
 

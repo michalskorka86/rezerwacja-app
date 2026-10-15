@@ -256,3 +256,6 @@ Nowe tabele jako pliki `server/sql/NNN_*.sql` (wgrywane ręcznie w phpMyAdmin), 
 - 14.10: (1) edycja rezerwacji z PWA: koniec 00:00:00 (tak PWA zapisuje puste „do”) = „bez godziny zakończenia”
   (formularz, karty, serwer) — zapis już nie zgłasza „zakończenie przed rozpoczęciem”. (2) Android: arkusz podnosi się nad
   klawiaturę i przewija do pola, w którym się pisze (Modal + edge-to-edge nie zmniejsza okna).
+- 15.10: aplikacja otwiera się na dzisiejszym dniu: ponowne „przewiń na dziś” po pierwszych świeżych danych z serwera
+  (dni z przeszłości przesuwały listę), po powrocie do aplikacji po ≥ 5 min, kilka prób przy długiej liście;
+  nie skacze, gdy pracownik sam przewija.
