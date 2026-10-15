@@ -1,7 +1,7 @@
-import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { baza } from '@/db/polaczenie';
 import { C, Fonts, Size } from '@/constants/theme';
 import { czytajPamiec, zapiszPamiec } from '@/db/baza';
 import { dataZRokiem, dzisStr } from '@/logika/daty';
@@ -25,7 +25,7 @@ type Pamiec = { osoby: Osoba[]; zadania: Zadanie[] };
  * Pobieramy zadania wszystkich osób naraz i trzymamy w telefonie — zakładki przełączają się od razu i bez zasięgu.
  */
 export function Zadania() {
-  const db = useSQLiteContext();
+  const db = baza;
   const { konto, odswiez } = useDane();
   const { toast, zapytaj } = useKomunikaty();
   const [dane, setDane] = useState<Pamiec | null>(null);

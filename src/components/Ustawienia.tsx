@@ -8,7 +8,7 @@ import { bladUzytkownika, daneUzytkownika, nowyUzytkownik, type StanUzytkownika 
 import { useDane } from '@/stan/DaneProvider';
 import { klient } from '@/stan/klient';
 import { zarejestrujPush } from '@/stan/push';
-import { WERSJA_APLIKACJI } from '@/stan/sesja';
+import { idUrzadzenia, MODEL, WERSJA_APLIKACJI } from '@/stan/sesja';
 import { zglos, zglosProblem } from '@/stan/zglos';
 
 import { opisWersji, pobierzIPrzeladuj } from './Aktualizacje';
@@ -440,8 +440,16 @@ function ZglosProblem({ onGotowe }: { onGotowe: () => void }) {
       toast(ok ? '✅ Wysłano. Dziękujemy!' : '✅ Zapisano — wyślemy, gdy będzie internet');
       onGotowe();
     } catch (e) {
-      zglos(e, { dopisek: 'Zgłoś problem' });
-      toast('❌ Nie udało się zapisać zgłoszenia');
+      // pamięć telefonu nie działa — wyślij od razu na serwer, z opisem tego błędu
+      try {
+        await klient('blad', {
+          body: { komunikat: `Zgłoszenie: ${tekst.trim()}`.slice(0, 500), stos: String(e).slice(0, 2000), ekran: 'ustawienia', urzadzenie: await idUrzadzenia(), model: MODEL },
+        });
+        toast('✅ Wysłano. Dziękujemy!');
+        onGotowe();
+      } catch (e2) {
+        toast('❌ Nie udało się wysłać zgłoszenia: ' + komunikatBledu(e2));
+      }
     } finally {
       setTrwa(false);
     }

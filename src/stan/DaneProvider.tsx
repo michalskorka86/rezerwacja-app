@@ -1,7 +1,7 @@
-import { useSQLiteContext } from 'expo-sqlite';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
 
+import { baza } from '@/db/polaczenie';
 import { wyczyscPamiec } from '@/db/baza';
 import { wyslijBledy } from '@/logika/bledy';
 import { dzisStr, zakresPobierania } from '@/logika/daty';
@@ -73,7 +73,7 @@ export function useUzytkownik() {
 }
 
 export function DaneProvider({ children }: { children: ReactNode }) {
-  const db = useSQLiteContext();
+  const db = baza;
   const [stan, setStan] = useState<Stan>(PUSTY_STAN);
   const [zalogowany, setZalogowany] = useState<boolean | null>(null);
   const [odswiezam, setOdswiezam] = useState(false);

@@ -7,7 +7,6 @@ import {
 } from '@expo-google-fonts/dm-sans';
 import { Stack, type ErrorBoundaryProps } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { SQLiteProvider } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -17,7 +16,6 @@ import { Aktualizacje } from '@/components/Aktualizacje';
 import { Logowanie } from '@/components/Logowanie';
 import { KomunikatyProvider } from '@/components/ui/Komunikaty';
 import { C, Fonts } from '@/constants/theme';
-import { DB_NAME, migruj } from '@/db/baza';
 import { DaneProvider, useDane } from '@/stan/DaneProvider';
 import '@/stan/zadanieTla'; // zadanie w tle (odświeżanie) — definiowane przy starcie
 import { zainstalujLapacz, zglos } from '@/stan/zglos';
@@ -65,13 +63,11 @@ export default function RootLayout() {
   if (!czcionki) return null;
   return (
     <SafeAreaProvider>
-      <SQLiteProvider databaseName={DB_NAME} onInit={migruj}>
-        <DaneProvider>
-          <KomunikatyProvider>
-            <Nawigacja />
-          </KomunikatyProvider>
-        </DaneProvider>
-      </SQLiteProvider>
+      <DaneProvider>
+        <KomunikatyProvider>
+          <Nawigacja />
+        </KomunikatyProvider>
+      </DaneProvider>
     </SafeAreaProvider>
   );
 }

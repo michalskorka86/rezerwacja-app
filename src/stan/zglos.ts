@@ -1,12 +1,11 @@
 /**
  * Przechwytywanie awarii aplikacji → zgłoszenie w telefonie (wyśle się przy odświeżaniu).
- * Działa też poza Reactem (globalny „łapacz” błędów JS), dlatego ma własne połączenie z bazą.
+ * Działa też poza Reactem (globalny „łapacz” błędów JS) — przez wspólne połączenie z bazą (src/db/polaczenie.ts).
  */
 
-import * as SQLite from 'expo-sqlite';
 import { Platform } from 'react-native';
 
-import { DB_NAME, migruj } from '@/db/baza';
+import { baza } from '@/db/polaczenie';
 import { opisBledu, zapiszBlad } from '@/logika/bledy';
 
 let ekran = '';
@@ -15,12 +14,7 @@ export const ustawEkran = (e: string) => {
   ekran = e;
 };
 
-let baza: Promise<SQLite.SQLiteDatabase> | null = null;
-const db = () =>
-  (baza ??= SQLite.openDatabaseAsync(DB_NAME).then(async (d) => {
-    await migruj(d);
-    return d;
-  }));
+const db = async () => baza;
 
 /** Zapisuje zgłoszenie (nigdy nie rzuca — zgłaszanie błędu nie może samo zepsuć aplikacji). */
 export async function zglos(e: unknown, opcje: { ekran?: string; dopisek?: string } = {}): Promise<void> {

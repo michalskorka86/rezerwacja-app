@@ -259,3 +259,8 @@ Nowe tabele jako pliki `server/sql/NNN_*.sql` (wgrywane ręcznie w phpMyAdmin), 
 - 15.10: aplikacja otwiera się na dzisiejszym dniu: ponowne „przewiń na dziś” po pierwszych świeżych danych z serwera
   (dni z przeszłości przesuwały listę), po powrocie do aplikacji po ≥ 5 min, kilka prób przy długiej liście;
   nie skacze, gdy pracownik sam przewija.
+- 15.10: PRZYCZYNA „Coś poszło nie tak” po leżeniu w tle (i niedziałającego „Zgłoś problem”): bazę w telefonie otwierały
+  osobno SQLiteProvider, zgłoszenia błędów i zadanie w tle; expo-sqlite dzieli wtedy jedno natywne połączenie i po
+  sprzątnięciu połączenia zadania w tle baza była zamknięta dla wszystkich („Access to closed resource”).
+  Teraz jedno trwałe połączenie src/db/polaczenie.ts (bez SQLiteProvider), samo otwiera się ponownie i powtarza operację;
+  „Zgłoś problem” przy kłopocie z bazą wysyła zgłoszenie od razu na serwer.

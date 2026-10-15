@@ -5,11 +5,10 @@
  */
 
 import * as BackgroundTask from 'expo-background-task';
-import * as SQLite from 'expo-sqlite';
 import * as TaskManager from 'expo-task-manager';
 import { AppState, Platform } from 'react-native';
 
-import { DB_NAME, migruj } from '@/db/baza';
+import { baza } from '@/db/polaczenie';
 import { pobierzZSerwera } from '@/logika/pobieranie';
 
 import { klient } from './klient';
@@ -21,11 +20,10 @@ export const ZADANIE_ODSWIEZ = 'rezerwacje-odswiez';
 if (Platform.OS !== 'web') {
   TaskManager.defineTask(ZADANIE_ODSWIEZ, async () => {
     try {
-      // aplikacja na ekranie odświeża się sama — nie dublujemy (dwa połączenia z bazą naraz)
+      // aplikacja na ekranie odświeża się sama — nie dublujemy
       if (AppState.currentState === 'active' || !(await token())) return BackgroundTask.BackgroundTaskResult.Success;
-      const db = await SQLite.openDatabaseAsync(DB_NAME);
-      await migruj(db);
-      await pobierzZSerwera(db, klient, false);
+      // wspólne połączenie z bazą (osobne zamykało bazę ekranom — „Access to closed resource”)
+      await pobierzZSerwera(baza, klient, false);
       return BackgroundTask.BackgroundTaskResult.Success;
     } catch {
       return BackgroundTask.BackgroundTaskResult.Failed;

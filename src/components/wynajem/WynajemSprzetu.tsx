@@ -1,9 +1,9 @@
 import * as Sharing from 'expo-sharing';
-import { useSQLiteContext } from 'expo-sqlite';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { captureRef } from 'react-native-view-shot';
 
+import { baza } from '@/db/polaczenie';
 import { C, Fonts, Size } from '@/constants/theme';
 import { czytajPamiec, zapiszPamiec } from '@/db/baza';
 import { dataZRokiem, dzisStr } from '@/logika/daty';
@@ -43,7 +43,7 @@ type Widok = { rodzaj: 'lista' } | { rodzaj: 'nowy' } | { rodzaj: 'edycja'; w: W
  * Lista pobierana w całości i zapisywana w telefonie — filtry działają od razu i bez zasięgu.
  */
 export function WynajemSprzetu() {
-  const db = useSQLiteContext();
+  const db = baza;
   const { konto } = useDane();
   const { toast, zapytaj } = useKomunikaty();
   const [lista, setLista] = useState<Wynajem[] | null>(null);
