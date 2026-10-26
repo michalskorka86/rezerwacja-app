@@ -266,3 +266,4 @@ Nowe tabele jako pliki `server/sql/NNN_*.sql` (wgrywane ręcznie w phpMyAdmin), 
   „Zgłoś problem” przy kłopocie z bazą wysyła zgłoszenie od razu na serwer.
 - 26.10: w szczegółach obok „📧 Wyślij potwierdzenie” kafelek „💬 Wyślij potwierdzenie SMS” (prośba Michała) — otwiera
   aplikację SMS w telefonie z numerem klienta i stałą treścią (src/logika/sms.ts), bez SMSAPI.
+- 26.10: SMS potwierdzenia dla Arsenału: link do mapy pola (Rembertów / Wołomin) i podpis „Paweł Arsenał Paintball”.

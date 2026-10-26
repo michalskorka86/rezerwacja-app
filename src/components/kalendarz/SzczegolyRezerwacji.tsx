@@ -7,7 +7,7 @@ import { moznaEdytowac, nazwyDodatkow } from '@/logika/kalendarz';
 import { komunikatBledu } from '@/logika/klient';
 import type { Rezerwacja } from '@/logika/typy';
 import { klient } from '@/stan/klient';
-import { adresSms, TRESC_SMS_POTWIERDZENIA } from '@/logika/sms';
+import { adresSms, trescSmsPotwierdzenia } from '@/logika/sms';
 import { useDane } from '@/stan/DaneProvider';
 import { zglos } from '@/stan/zglos';
 
@@ -106,7 +106,7 @@ export function SzczegolyRezerwacji({
 
   // SMS z telefonu pracownika: otwiera aplikację SMS z numerem klienta i gotową treścią — wystarczy „Wyślij”
   const smsPotwierdzenia = () => {
-    const adres = adresSms(r.klient_telefon, TRESC_SMS_POTWIERDZENIA);
+    const adres = adresSms(r.klient_telefon, trescSmsPotwierdzenia(r));
     if (adres) Linking.openURL(adres).catch(() => toast('❌ Nie udało się otworzyć wiadomości SMS'));
   };
 
@@ -195,7 +195,7 @@ export function SzczegolyRezerwacji({
               <PrzyciskAkcji
                 rodzaj="mail"
                 tekst="💬 Wyślij potwierdzenie SMS"
-                wylaczony={!adresSms(r.klient_telefon, TRESC_SMS_POTWIERDZENIA)}
+                wylaczony={!adresSms(r.klient_telefon, trescSmsPotwierdzenia(r))}
                 onPress={smsPotwierdzenia}
                 style={styles.pol}
               />
