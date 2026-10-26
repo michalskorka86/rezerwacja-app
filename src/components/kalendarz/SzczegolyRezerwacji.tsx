@@ -7,6 +7,7 @@ import { moznaEdytowac, nazwyDodatkow } from '@/logika/kalendarz';
 import { komunikatBledu } from '@/logika/klient';
 import type { Rezerwacja } from '@/logika/typy';
 import { klient } from '@/stan/klient';
+import { adresSms, TRESC_SMS_POTWIERDZENIA } from '@/logika/sms';
 import { useDane } from '@/stan/DaneProvider';
 import { zglos } from '@/stan/zglos';
 
@@ -103,6 +104,12 @@ export function SzczegolyRezerwacji({
     }
   };
 
+  // SMS z telefonu pracownika: otwiera aplikację SMS z numerem klienta i gotową treścią — wystarczy „Wyślij”
+  const smsPotwierdzenia = () => {
+    const adres = adresSms(r.klient_telefon, TRESC_SMS_POTWIERDZENIA);
+    if (adres) Linking.openURL(adres).catch(() => toast('❌ Nie udało się otworzyć wiadomości SMS'));
+  };
+
   const zadzwon = () => {
     if (r.klient_telefon) Linking.openURL('tel:' + r.klient_telefon.replace(/\s/g, ''));
   };
@@ -179,10 +186,18 @@ export function SzczegolyRezerwacji({
             <RzadAkcji>
               <PrzyciskAkcji
                 rodzaj={r.mail_potw_wyslany ? 'wyslany' : 'mail'}
-                tekst={r.mail_potw_wyslany ? '✅ Potwierdzenie wysłane — wyślij ponownie' : '📧 Wyślij potwierdzenie'}
+                tekst={r.mail_potw_wyslany ? '✅ E-mail wysłany — wyślij ponownie' : '📧 Wyślij potwierdzenie'}
                 wylaczony={!r.klient_email || (!!trwa && trwa !== 'mail_potw')}
                 trwa={trwa === 'mail_potw'}
                 onPress={() => akcja('mail_potw', 'mail_potwierdzenie', {}, '✅ Potwierdzenie wysłane!')}
+                style={styles.pol}
+              />
+              <PrzyciskAkcji
+                rodzaj="mail"
+                tekst="💬 Wyślij potwierdzenie SMS"
+                wylaczony={!adresSms(r.klient_telefon, TRESC_SMS_POTWIERDZENIA)}
+                onPress={smsPotwierdzenia}
+                style={styles.pol}
               />
             </RzadAkcji>
             {!r.klient_email ? <Text style={styles.podpowiedz}>Brak e-maila klienta — maile są wyłączone.</Text> : null}
@@ -233,4 +248,5 @@ const styles = StyleSheet.create({
   kreska: { borderTopWidth: 0.5, borderTopColor: C.border, marginTop: 6, paddingTop: 10 },
   podpowiedz: { fontFamily: Fonts.regular, fontSize: 12, color: C.text3, textAlign: 'center', paddingTop: 4 },
   trzy: { flexBasis: 90 },
+  pol: { flex: 1, flexBasis: 0 },
 });

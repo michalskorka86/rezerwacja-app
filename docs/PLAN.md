@@ -264,3 +264,5 @@ Nowe tabele jako pliki `server/sql/NNN_*.sql` (wgrywane ręcznie w phpMyAdmin), 
   sprzątnięciu połączenia zadania w tle baza była zamknięta dla wszystkich („Access to closed resource”).
   Teraz jedno trwałe połączenie src/db/polaczenie.ts (bez SQLiteProvider), samo otwiera się ponownie i powtarza operację;
   „Zgłoś problem” przy kłopocie z bazą wysyła zgłoszenie od razu na serwer.
+- 26.10: w szczegółach obok „📧 Wyślij potwierdzenie” kafelek „💬 Wyślij potwierdzenie SMS” (prośba Michała) — otwiera
+  aplikację SMS w telefonie z numerem klienta i stałą treścią (src/logika/sms.ts), bez SMSAPI.
