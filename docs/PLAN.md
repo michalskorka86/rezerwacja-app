@@ -52,6 +52,9 @@ dla publicznego repo, bez kolejki Expo) → instalacja przez TestFlight. Poprawk
   zmiana = aktualizacje nie trafią na obecny APK (potrzebny nowy APK). Dlatego iPhone używa istniejącego profilu `production`,
   a pytanie Apple o szyfrowanie („Export Compliance”) zaznacza się w App Store Connect przy każdej wersji: „None of the algorithms…”.
 - Na iPhonie bez paska „📥 Jest nowa wersja” (nowe wersje przychodzą przez TestFlight); SMS z telefonu: `sms:numer&body=`.
+- Mac: `macos-26` + najnowszy Xcode (SDK 57 wymaga Xcode 26.4+). Certyfikat i profil założone 03.11 (ważne do 03.11.2027);
+  gdyby trzeba je założyć od nowa: Actions → „Buduj iPhone” → Run workflow z zaznaczonym „Pierwszy raz”.
+- Pierwsza wersja wysłana do TestFlight 04.11.
 - Wersja z TestFlight wygasa po 90 dniach — przed tym czasem trzeba zbudować nową (`[ios]`).
 
 ## Co jest w PWA (przeczytane z paczki)
