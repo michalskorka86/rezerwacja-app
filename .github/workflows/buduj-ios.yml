@@ -13,6 +13,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      pierwszy:
+        description: 'Pierwszy raz: załóż certyfikat i profil podpisu w Apple (odpowiada „tak” na pytania Expo)'
+        type: boolean
+        default: false
 jobs:
   ios:
     if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[ios]')
@@ -48,7 +53,23 @@ jobs:
           echo "EXPO_ASC_ISSUER_ID=$ISS" >> "$GITHUB_ENV"
           echo "EXPO_APPLE_TEAM_ID=$TEAM" >> "$GITHUB_ENV"
           echo "EXPO_APPLE_TEAM_TYPE=COMPANY_OR_ORGANIZATION" >> "$GITHUB_ENV"
+      - name: Pierwszy raz — certyfikat i profil podpisu (Expo pyta, odpowiadamy domyślnie „tak”)
+        if: inputs.pierwszy
+        run: |
+          cat > "$RUNNER_TEMP/tak.exp" <<'X'
+          set timeout 3600
+          log_user 1
+          spawn eas build --platform ios --profile production --local --output rezerwacje.ipa
+          expect {
+            -re {\(Y/n\)|\(y/N\)|›|❯} { sleep 1; send "\r"; exp_continue }
+            eof
+          }
+          lassign [wait] pid spawnid os_error code
+          exit $code
+          X
+          expect "$RUNNER_TEMP/tak.exp"
       - name: Zbuduj aplikację (.ipa)
+        if: '!inputs.pierwszy'
         run: eas build --platform ios --profile production --local --non-interactive --output rezerwacje.ipa
       - uses: actions/upload-artifact@v4
         with:
