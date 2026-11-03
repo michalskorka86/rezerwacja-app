@@ -59,7 +59,7 @@ jobs:
           cat > "$RUNNER_TEMP/tak.exp" <<'X'
           set timeout 3600
           log_user 1
-          spawn eas build --platform ios --profile production --local --output rezerwacje.ipa
+          spawn env -u CI -u GITHUB_ACTIONS -u CONTINUOUS_INTEGRATION eas build --platform ios --profile production --local --output rezerwacje.ipa
           expect {
             -re {\(Y/n\)|\(y/N\)|›|❯} { sleep 1; send "\r"; exp_continue }
             eof
