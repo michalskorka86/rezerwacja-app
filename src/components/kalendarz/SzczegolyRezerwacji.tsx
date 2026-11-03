@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Linking, StyleSheet, Text, View } from 'react-native';
+import { Linking, Platform, StyleSheet, Text, View } from 'react-native';
 
 import { C, Fonts } from '@/constants/theme';
 import { godziny, krotkiCzas } from '@/logika/daty';
@@ -106,7 +106,7 @@ export function SzczegolyRezerwacji({
 
   // SMS z telefonu pracownika: otwiera aplikację SMS z numerem klienta i gotową treścią — wystarczy „Wyślij”
   const smsPotwierdzenia = () => {
-    const adres = adresSms(r.klient_telefon, trescSmsPotwierdzenia(r));
+    const adres = adresSms(r.klient_telefon, trescSmsPotwierdzenia(r), Platform.OS === 'ios');
     if (adres) Linking.openURL(adres).catch(() => toast('❌ Nie udało się otworzyć wiadomości SMS'));
   };
 
@@ -195,7 +195,7 @@ export function SzczegolyRezerwacji({
               <PrzyciskAkcji
                 rodzaj="mail"
                 tekst="💬 Wyślij potwierdzenie SMS"
-                wylaczony={!adresSms(r.klient_telefon, trescSmsPotwierdzenia(r))}
+                wylaczony={!adresSms(r.klient_telefon, trescSmsPotwierdzenia(r), Platform.OS === 'ios')}
                 onPress={smsPotwierdzenia}
                 style={styles.pol}
               />

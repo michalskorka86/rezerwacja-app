@@ -1,6 +1,6 @@
 import * as Updates from 'expo-updates';
 import { useEffect, useState } from 'react';
-import { AppState, Linking, Pressable, StyleSheet, Text } from 'react-native';
+import { AppState, Linking, Platform, Pressable, StyleSheet, Text } from 'react-native';
 
 import { APK_URL } from '@/constants/serwer';
 import { C, Fonts, Size } from '@/constants/theme';
@@ -58,7 +58,8 @@ let wynik: InfoApk | null = null;
 
 /** Porównuje „odcisk” modułów zainstalowanej aplikacji z najnowszym APK na GitHubie (przez apk.php?info). */
 async function sprawdzApk(): Promise<InfoApk | null> {
-  if (!Updates.isEnabled || !Updates.runtimeVersion) return null;
+  // tylko Android: APK z GitHuba; iPhone dostaje nowe wersje przez TestFlight
+  if (Platform.OS !== 'android' || !Updates.isEnabled || !Updates.runtimeVersion) return null;
   if (Date.now() - ostatnio < CO_MS) return wynik;
   try {
     const r = await fetch(`${APK_URL}?info`, { headers: { Accept: 'application/json' } });

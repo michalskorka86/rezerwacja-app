@@ -9,6 +9,7 @@ test('SMS potwierdzenia: numer bez spacji, treść zakodowana, bez numeru — nu
   assert.ok(a?.startsWith('sms:+48501234567?body=Dzi%C4%99kuj%C4%99'));
   assert.equal(decodeURIComponent(a!.split('body=')[1]), t);
   assert.ok(t.endsWith('Pozdrawiam serdecznie Kuba SILT Paintball & ASG.'));
+  assert.ok(adresSms('501 234 567', 'a b', true)?.startsWith('sms:501234567&body=a%20b'));
   assert.equal(adresSms('', 'x'), null);
   assert.equal(adresSms(null, 'x'), null);
 });

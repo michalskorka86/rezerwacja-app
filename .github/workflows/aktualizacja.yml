@@ -43,9 +43,10 @@ jobs:
             if (!pk.includes("pl.silt.rezerwacje")) { console.log("::error::W google-services.json nie ma aplikacji pl.silt.rezerwacje (są: " + pk.join(", ") + ")"); process.exit(1); }
             console.log("google-services.json OK");
           '
-      - name: Wyślij do EAS Update (kanał preview = APK z GitHuba)
+      - name: Wyślij do EAS Update (kanał preview = APK z GitHuba, production = iPhone z TestFlight)
         env:
           OPIS: ${{ inputs.opis }}
         run: |
           [ -n "$OPIS" ] || OPIS="$(git log -1 --format=%s | sed 's/\[aktualizacja\]//' | xargs)"
           eas update --platform android --channel preview --message "$OPIS" --non-interactive
+          eas update --platform ios --channel production --message "$OPIS" --non-interactive

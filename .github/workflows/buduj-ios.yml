@@ -1,0 +1,70 @@
+# Aplikacja na iPhone'a — budowanie NA GITHUBIE (Mac od GitHuba, darmowy przy publicznym repozytorium) i wysłanie do TestFlight.
+# Uruchamia się:
+#  - SAMO po wysłaniu na main commita z „[ios]” w opisie,
+#  - albo ręcznie: Actions → „Buduj iPhone” → Run workflow.
+# Wymaga sekretów (Settings → Secrets and variables → Actions):
+#  EXPO_TOKEN, GOOGLE_SERVICES_JSON (te same co dla APK),
+#  APPLE_TEAM_ID, ASC_KEY_ID, ASC_ISSUER_ID, ASC_API_KEY_P8 (cała treść pliku AuthKey_….p8),
+#  ASC_APP_ID (numer „Apple ID” aplikacji z App Store Connect — bez niego plik .ipa tylko zostaje w Actions, bez TestFlight).
+# Certyfikat i profil podpisu trzyma Expo (expo.dev → Credentials → iOS) — przy pierwszym razie zakłada je sam, z klucza API.
+# Poprawki JS docierają na iPhone'a tak samo jak na Androida: commit z „[aktualizacja]” (EAS Update, kanał preview).
+name: Buduj iPhone
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  ios:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[ios]')
+    runs-on: macos-15
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - run: npm ci
+      - name: Klucze z sekretów (nie trafiają do repozytorium)
+        env:
+          GS: ${{ secrets.GOOGLE_SERVICES_JSON }}
+          P8: ${{ secrets.ASC_API_KEY_P8 }}
+          TEAM: ${{ secrets.APPLE_TEAM_ID }}
+          KID: ${{ secrets.ASC_KEY_ID }}
+          ISS: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          for n in GS P8 TEAM KID ISS; do
+            eval "v=\$$n"; [ -n "$v" ] || { echo "::error::Brak sekretu ($n) — lista sekretów jest na górze tego pliku"; exit 1; }
+          done
+          printf '%s' "$GS" > google-services.json
+          printf '%s\n' "$P8" > "$RUNNER_TEMP/asc.p8"
+          grep -q 'BEGIN PRIVATE KEY' "$RUNNER_TEMP/asc.p8" || { echo "::error::ASC_API_KEY_P8 to nie jest treść pliku .p8 (powinna zaczynać się od -----BEGIN PRIVATE KEY-----)"; exit 1; }
+          echo "EXPO_ASC_API_KEY_PATH=$RUNNER_TEMP/asc.p8" >> "$GITHUB_ENV"
+          echo "EXPO_ASC_KEY_ID=$KID" >> "$GITHUB_ENV"
+          echo "EXPO_ASC_ISSUER_ID=$ISS" >> "$GITHUB_ENV"
+          echo "EXPO_APPLE_TEAM_ID=$TEAM" >> "$GITHUB_ENV"
+          echo "EXPO_APPLE_TEAM_TYPE=COMPANY_OR_ORGANIZATION" >> "$GITHUB_ENV"
+      - name: Zbuduj aplikację (.ipa)
+        run: eas build --platform ios --profile production --local --non-interactive --output rezerwacje.ipa
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rezerwacje-ipa
+          path: rezerwacje.ipa
+          retention-days: 14
+      - name: Wyślij do TestFlight
+        env:
+          APP_ID: ${{ secrets.ASC_APP_ID }}
+        run: |
+          if [ -z "$APP_ID" ]; then echo "::warning::Brak sekretu ASC_APP_ID — aplikacja zbudowana, ale nie wysłana do TestFlight"; exit 0; fi
+          node -e '
+            const fs = require("fs"); const e = process.env;
+            const j = JSON.parse(fs.readFileSync("eas.json", "utf8"));
+            j.submit = { production: { ios: { ascAppId: e.APP_ID, appleTeamId: e.EXPO_APPLE_TEAM_ID,
+              ascApiKeyPath: e.EXPO_ASC_API_KEY_PATH, ascApiKeyId: e.EXPO_ASC_KEY_ID, ascApiKeyIssuerId: e.EXPO_ASC_ISSUER_ID } } };
+            fs.writeFileSync("eas.json", JSON.stringify(j, null, 2));
+          '
+          eas submit --platform ios --profile production --path rezerwacje.ipa --non-interactive

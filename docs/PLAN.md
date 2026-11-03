@@ -42,6 +42,18 @@ push na iPhonie działa dla strony dodanej do ekranu; (c) konto Apple + TestFlig
 Plan: Apple Developer Program (99 USD/rok) → budowanie wersji na iPhone'a na GitHubie (maszyny macOS są darmowe
 dla publicznego repo, bez kolejki Expo) → instalacja przez TestFlight. Poprawki JS przez EAS Update jak na Androidzie.
 
+**Jak to działa (od 03.11):**
+- Workflow `buduj-ios.yml` („Buduj iPhone”): commit z „[ios]” albo ręcznie → Mac na GitHubie buduje `.ipa`
+  (`eas build --local`, profil **production** — kanał aktualizacji `production`) → `eas submit` do TestFlight.
+- Sekrety GitHuba: `APPLE_TEAM_ID`, `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_API_KEY_P8`, `ASC_APP_ID` (+ `EXPO_TOKEN`, `GOOGLE_SERVICES_JSON`).
+- Certyfikat/profil podpisu i klucz APNs (push) trzyma Expo (expo.dev → Credentials → iOS).
+- `[aktualizacja]` wysyła poprawkę osobno na Androida (kanał preview) i iPhone'a (kanał production).
+- **Nie zmieniać `eas.json` ani `app.json` bez potrzeby** — oba wchodzą do „odcisku” (runtimeVersion) także Androida;
+  zmiana = aktualizacje nie trafią na obecny APK (potrzebny nowy APK). Dlatego iPhone używa istniejącego profilu `production`,
+  a pytanie Apple o szyfrowanie („Export Compliance”) zaznacza się w App Store Connect przy każdej wersji: „None of the algorithms…”.
+- Na iPhonie bez paska „📥 Jest nowa wersja” (nowe wersje przychodzą przez TestFlight); SMS z telefonu: `sms:numer&body=`.
+- Wersja z TestFlight wygasa po 90 dniach — przed tym czasem trzeba zbudować nową (`[ios]`).
+
 ## Co jest w PWA (przeczytane z paczki)
 
 | Plik | Co robi |

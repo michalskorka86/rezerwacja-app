@@ -24,9 +24,12 @@ export function trescSmsPotwierdzenia(r: Pick<Rezerwacja, 'marka' | 'lokalizacja
   return `${WSTEP} Pozdrawiam serdecznie Kuba SILT Paintball & ASG.`;
 }
 
-/** Adres otwierający aplikację SMS z numerem i treścią: „sms:+48501234567?body=…” (null, gdy brak numeru). */
-export function adresSms(telefon: string | null | undefined, tresc: string): string | null {
+/**
+ * Adres otwierający aplikację SMS z numerem i treścią (null, gdy brak numeru).
+ * Android: „sms:+48501234567?body=…”, iPhone: „sms:+48501234567&body=…” (tak czyta to aplikacja Wiadomości).
+ */
+export function adresSms(telefon: string | null | undefined, tresc: string, iphone = false): string | null {
   const numer = (telefon ?? '').replace(/[^\d+]/g, '');
   if (numer.replace(/\D/g, '').length < 6) return null;
-  return `sms:${numer}?body=${encodeURIComponent(tresc)}`;
+  return `sms:${numer}${iphone ? '&' : '?'}body=${encodeURIComponent(tresc)}`;
 }
