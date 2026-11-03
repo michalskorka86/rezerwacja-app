@@ -21,10 +21,15 @@ on:
 jobs:
   ios:
     if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[ios]')
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v5
+      - name: Najnowszy Xcode (Expo SDK 57 wymaga Xcode 26.4+)
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      - run: xcodebuild -version
       - uses: actions/setup-node@v6
         with:
           node-version: 22
