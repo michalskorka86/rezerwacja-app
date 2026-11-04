@@ -288,6 +288,7 @@ Nowe tabele jako pliki `server/sql/NNN_*.sql` (wgrywane ręcznie w phpMyAdmin), 
 - 04.11: Ustawienia na cały ekran, lista w grupach (Konto · Zespół · Ten telefon · Pomoc · Wyloguj); każda pozycja = osobny ekran.
   Użytkownicy: lista → ekran osoby (hasło tymczasowe, wymuś zmianę hasła, włącz/wyłącz). Wyloguj tylko w Ustawieniach.
   Nowa akcja API `haslo_tymczasowe` (server/api.php + server/lib/konto.php — wgrać przez FTP).
-- 04.11: PWA wyłączone przez Michała — blok `<FilesMatch>` (403) dopisany na końcu `rezerwacjaapp/.htaccess` dla index, kalendarz,
-  logout, pdf_dzien, api, instruktor-api, sync-cron. Działają dalej: aplikacja-api/, podglad.php (SILT Lista), process.php.
+- 04.11: PWA wyłączone przez Michała — na końcu `rezerwacjaapp/.htaccess` dwie linie `RedirectMatch 403 ^/rezerwacjaapp/...`
+  (katalog + index, kalendarz, logout, pdf_dzien, api, instruktor-api, sync-cron). UWAGA: NIE `<FilesMatch>` — działa też
+  w podfolderach i zablokował aplikacja-api/api.php (błąd 403 w aplikacji). Działają dalej: aplikacja-api/, podglad.php (SILT Lista), process.php.
   Bez strony z linkiem do APK (decyzja Michała — bezpieczeństwo). Przywrócenie: usunąć ten blok.
