@@ -160,6 +160,11 @@ export default function Kalendarz() {
 
   const wybierzZMenu = (p: PozycjaMenu) => {
     setMenu(false);
+    if (p === 'odswiez') {
+      // zostajemy na tym samym ekranie; pobranie świeżych danych z serwera
+      dane.odswiez(true).then((ok) => toast(ok ? '✅ Odświeżono' : '⚠️ Nie udało się odświeżyć. Sprawdź internet i spróbuj za chwilę.'));
+      return;
+    }
     setOkno(p === 'kalendarz' ? null : p);
   };
 

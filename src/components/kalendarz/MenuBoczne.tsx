@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { C, cien, Fonts, Size } from '@/constants/theme';
 
-export type PozycjaMenu = 'kalendarz' | 'wynajem' | 'zadania' | 'rozpiski' | 'ustawienia';
+export type PozycjaMenu = 'kalendarz' | 'wynajem' | 'zadania' | 'rozpiski' | 'odswiez' | 'ustawienia';
 
 type Props = {
   otwarte: boolean;
@@ -20,7 +20,7 @@ type Props = {
 };
 
 /**
- * Menu z lewej (☰): Kalendarz, Wynajem, Zadania, Rozpiski (Arsenał), Ustawienia (tam zmiana hasła i Wyloguj).
+ * Menu z lewej (☰): Kalendarz, Wynajem, Zadania, Rozpiski (Arsenał), Odśwież, Ustawienia (tam zmiana hasła i Wyloguj).
  * Zamykanie: ✕ Zamknij, dotknięcie tła albo Wstecz w telefonie.
  * `MenuBoczne` = osobne okno (nad kalendarzem); `WarstwaMenu` = to samo jako warstwa wewnątrz pełnego ekranu
  * (Wynajem / Zadania są już osobnym oknem — drugie okno nad nim nie zawsze pokazuje się na iPhonie).
@@ -84,6 +84,7 @@ export function WarstwaMenu({ otwarte, aktywna, logo, imie, opis, ileZadan, arse
           {poz('zadania', '📋 Zadania', ileZadan)}
           {arsenal ? poz('rozpiski', '📄 Rozpiski') : null}
           <View style={styles.kreska} />
+          {poz('odswiez', '🔄 Odśwież')}
           {poz('ustawienia', '⚙️ Ustawienia')}
         </ScrollView>
         <Pressable onPress={onZamknij} style={({ pressed }) => [styles.zamknij, pressed && { opacity: 0.7 }]} accessibilityRole="button">
