@@ -193,7 +193,6 @@ export default function Kalendarz() {
   const stronaMenu = okno === 'wynajem' || okno === 'zadania' || okno === 'ustawienia' ? okno : 'kalendarz';
   const menuProps = {
     aktywna: stronaMenu,
-    logo: ustawienia.logo,
     imie: uzytkownik.imie,
     opis: `${uzytkownik.marka === 'arsenal' ? 'Arsenał' : 'SILT'} · ${uzytkownik.rola_nazwa === 'instruktor' ? 'instruktor' : 'admin'}`,
     ileZadan: licznik.zadania,

@@ -12,7 +12,6 @@ type Props = {
   otwarte: boolean;
   /** która strona jest teraz na ekranie (podświetlona) */
   aktywna: 'kalendarz' | 'wynajem' | 'zadania' | 'ustawienia';
-  logo: string | null;
   imie: string;
   opis: string;
   ileZadan: number;
@@ -36,7 +35,7 @@ export function MenuBoczne(props: Props) {
   );
 }
 
-export function WarstwaMenu({ otwarte, aktywna, logo, imie, opis, ileZadan, arsenal, onWybierz, onZamknij }: Props) {
+export function WarstwaMenu({ otwarte, aktywna, imie, opis, ileZadan, arsenal, onWybierz, onZamknij }: Props) {
   const insets = useSafeAreaInsets();
   const [anim] = useState(() => new Animated.Value(0));
   useEffect(() => {
@@ -75,7 +74,11 @@ export function WarstwaMenu({ otwarte, aktywna, logo, imie, opis, ileZadan, arse
       </Animated.View>
       <Animated.View style={[styles.panel, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 14, transform: [{ translateX: przesun }] }]}>
         <ScrollView contentContainerStyle={styles.tresc} bounces={false}>
-          {logo ? <Image source={{ uri: logo }} style={styles.logo} resizeMode="contain" accessibilityLabel="Logo" /> : null}
+          {arsenal ? (
+            <Image source={require('../../../assets/images/logo-arsenal.png')} style={styles.logoArsenal} resizeMode="contain" accessibilityLabel="Arsenał Paintball" />
+          ) : (
+            <Image source={require('../../../assets/images/logo-silt.png')} style={styles.logoSilt} resizeMode="contain" accessibilityLabel="SILT Paintball" />
+          )}
           <Text style={styles.imie} numberOfLines={1}>
             {imie}
           </Text>
@@ -102,7 +105,8 @@ const styles = StyleSheet.create({
   tlo: { backgroundColor: 'rgba(0,0,0,0.35)' },
   panel: { position: 'absolute', left: 0, top: 0, bottom: 0, width: 280, maxWidth: '82%', backgroundColor: C.surface, paddingHorizontal: 14, ...cien(3) },
   tresc: { gap: 4, paddingBottom: 10 },
-  logo: { height: 30, width: 110, marginBottom: 8 },
+  logoSilt: { height: 46, width: 160, marginBottom: 14 },
+  logoArsenal: { height: 84, width: 82, marginBottom: 12 },
   imie: { fontFamily: Fonts.semibold, fontSize: 15, color: C.text },
   opis: { fontFamily: Fonts.regular, fontSize: 13, color: C.text2, marginBottom: 14 },
   poz: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48, paddingHorizontal: 12, borderRadius: 10 },
