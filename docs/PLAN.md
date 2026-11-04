@@ -285,3 +285,6 @@ Nowe tabele jako pliki `server/sql/NNN_*.sql` (wgrywane ręcznie w phpMyAdmin), 
 - 04.11: nowy górny pasek (wariant „C”, wybrany przez Michała): ☰ menu z boku (licznik zadań), nazwa miesiąca, filtr, 🔍;
   Tydzień/Miesiąc/Dzień + „Dziś”; odświeżanie pociągnięciem listy w dół (bez 🔄). Wynajem i Zadania na cały ekran
   („← Wstecz” albo ☰ → Kalendarz). W menu: Rozpiski (Arsenał), Ustawienia, Wyloguj (Zmień hasło tylko w Ustawieniach). Makiety: artefakt „Górne menu — propozycje”.
+- 04.11: Ustawienia na cały ekran, lista w grupach (Konto · Zespół · Ten telefon · Pomoc · Wyloguj); każda pozycja = osobny ekran.
+  Użytkownicy: lista → ekran osoby (hasło tymczasowe, wymuś zmianę hasła, włącz/wyłącz). Wyloguj tylko w Ustawieniach.
+  Nowa akcja API `haslo_tymczasowe` (server/api.php + server/lib/konto.php — wgrać przez FTP).

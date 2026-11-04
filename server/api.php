@@ -90,6 +90,7 @@ $zapis = [
     'zmien_haslo' => 'akcja_zmien_haslo',
     'uzytkownik_dodaj' => 'akcja_uzytkownik_dodaj',
     'haslo_reset' => 'akcja_haslo_reset',
+    'haslo_tymczasowe' => 'akcja_haslo_tymczasowe',
     'uzytkownik_aktywny' => 'akcja_uzytkownik_aktywny',
     'sms_ustawienia_zapisz' => 'akcja_sms_ustawienia_zapisz',
     'push_zarejestruj' => 'akcja_push_zarejestruj',

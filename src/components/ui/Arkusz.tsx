@@ -23,14 +23,15 @@ import { ustawEkran } from '@/stan/zglos';
 
 import { WarstwaKomunikatow } from './Komunikaty';
 
-type ArkuszApi = { naGore: () => void; ustawWstecz: (f: (() => void) | null) => void };
+type ArkuszApi = { naGore: () => void; ustawWstecz: (f: (() => void) | null) => void; ustawTytul: (t: string | null) => void };
 const ArkuszKontekst = createContext<ArkuszApi | null>(null);
 
 /**
  * Dla ekranów wewnątrz arkusza (np. formularz wynajmu na miejscu listy): po otwarciu przewija arkusz na górę,
- * a przycisk Wstecz w telefonie woła `wstecz` (np. „← wróć do listy”) zamiast zamykać cały arkusz.
+ * a przycisk Wstecz w telefonie (i „← Wstecz” na pełnym ekranie) woła `wstecz` (np. wróć do listy) zamiast zamykać całość.
+ * `tytul` — na pełnym ekranie zastępuje tytuł w nagłówku (np. „👥 Użytkownicy” w Ustawieniach).
  */
-export function usePodstronaArkusza(wstecz: () => void) {
+export function usePodstronaArkusza(wstecz: () => void, tytul?: string) {
   const api = useContext(ArkuszKontekst);
   useEffect(() => {
     api?.naGore();
@@ -39,6 +40,11 @@ export function usePodstronaArkusza(wstecz: () => void) {
     api?.ustawWstecz(wstecz);
     return () => api?.ustawWstecz(null);
   }, [api, wstecz]);
+  useEffect(() => {
+    if (!tytul) return;
+    api?.ustawTytul(tytul);
+    return () => api?.ustawTytul(null);
+  }, [api, tytul]);
 }
 
 /**
@@ -77,7 +83,7 @@ export function Arkusz({
    * Cały ekran zamiast arkusza od dołu (Wynajem, Zadania): wsuwa się z prawej, nagłówek „☰ · tytuł · ← Wstecz”.
    * `lewo` = przycisk ☰ (menu z boku).
    */
-  pelnyEkran?: { lewo: ReactNode };
+  pelnyEkran?: { lewo: ReactNode; tlo?: string };
   /** warstwa nad treścią, w tym samym oknie (menu z boku otwarte z pełnego ekranu); gdy jest — Wstecz woła onZamknij */
   nakladka?: ReactNode;
 }) {
@@ -90,11 +96,13 @@ export function Arkusz({
   const przewijanie = useRef<ScrollView>(null);
   const znacznik = useRef<View>(null);
   const wstecz = useRef<(() => void) | null>(null);
+  const [tytulPodstrony, setTytulPodstrony] = useState<string | null>(null);
   const [api] = useState<ArkuszApi>(() => ({
     naGore: () => przewijanie.current?.scrollTo({ y: 0, animated: false }),
     ustawWstecz: (f) => {
       wstecz.current = f;
     },
+    ustawTytul: setTytulPodstrony,
   }));
 
   useEffect(() => {
@@ -147,17 +155,17 @@ export function Arkusz({
           style={[
             styles.arkusz,
             pelnyEkran
-              ? { top: 0, bottom: klawiatura, borderRadius: 0, paddingTop: insets.top, transform: [{ translateX: przesun }] }
+              ? { top: 0, bottom: klawiatura, borderRadius: 0, paddingTop: insets.top, backgroundColor: pelnyEkran.tlo ?? C.surface, transform: [{ translateX: przesun }] }
               : { bottom: klawiatura, maxHeight: Math.max(height * wysokosc - klawiatura, 200), transform: [{ translateY: przesun }] },
             { paddingBottom: stopka || klawiatura ? 0 : insets.bottom },
           ]}>
           {pelnyEkran ? (
-            <View style={[styles.hdr, styles.hdrPelny]}>
+            <View style={[styles.hdr, styles.hdrPelny, { backgroundColor: C.surface }]}>
               {pelnyEkran.lewo}
               <Text style={styles.tytul} numberOfLines={1}>
-                {tytul}
+                {tytulPodstrony ?? tytul}
               </Text>
-              <Zamknij tekst="← Wstecz" onPress={onZamknij} />
+              <Zamknij tekst="← Wstecz" onPress={() => (wstecz.current ? wstecz.current() : onZamknij())} />
             </View>
           ) : bezNaglowka ? null : (
             <View style={styles.hdr}>

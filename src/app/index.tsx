@@ -33,7 +33,7 @@ type Okno = null | 'wynajem' | 'zadania' | 'ustawienia' | 'rozpiski' | 'haslo';
 export default function Kalendarz() {
   const dane = useDane();
   const { konto, slowniki, licznik, odswiezam, bladOdswiezania, pobrano, filtr, ustawFiltr, niedoszle } = dane;
-  const { toast, zapytaj } = useKomunikaty();
+  const { toast } = useKomunikaty();
   const insets = useSafeAreaInsets();
   const harmonogram = useRef<HarmonogramRef>(null);
 
@@ -157,12 +157,9 @@ export default function Kalendarz() {
     if (w === 'tydzien') przewinieto.current = null;
   };
 
-  const naKonto = () =>
-    zapytaj({ tytul: 'Wylogować się?', tekst: 'Dane rezerwacji zostaną usunięte z tego telefonu.', ok: 'Wyloguj', niebezpieczne: true, onOk: () => dane.wyloguj() });
 
   const wybierzZMenu = (p: PozycjaMenu) => {
     setMenu(false);
-    if (p === 'wyloguj') return naKonto();
     setOkno(p === 'kalendarz' ? null : p);
   };
 
@@ -188,7 +185,7 @@ export default function Kalendarz() {
   const offline = bladOdswiezania && pobrano;
   const dzienTytulu = zData(widok === 'miesiac' ? miesiacWidoku : (widocznyDzien ?? dzis));
   const tytulMiesiaca = `${MIESIACE[dzienTytulu.getMonth()]} ${dzienTytulu.getFullYear()}`;
-  const stronaMenu = okno === 'wynajem' || okno === 'zadania' ? okno : 'kalendarz';
+  const stronaMenu = okno === 'wynajem' || okno === 'zadania' || okno === 'ustawienia' ? okno : 'kalendarz';
   const menuProps = {
     aktywna: stronaMenu,
     logo: ustawienia.logo,
@@ -367,7 +364,14 @@ export default function Kalendarz() {
         <Zadania />
       </Arkusz>
       <MenuBoczne otwarte={menu && stronaMenu === 'kalendarz'} {...menuProps} />
-      <Arkusz widoczny={okno === 'ustawienia'} onZamknij={() => setOkno(null)} tytul="⚙️ Ustawienia" nazwa="ustawienia" wysokosc={0.98} bezPaddingu>
+      <Arkusz
+        widoczny={okno === 'ustawienia'}
+        onZamknij={() => (menu ? setMenu(false) : setOkno(null))}
+        tytul="⚙️ Ustawienia"
+        nazwa="ustawienia"
+        bezPaddingu
+        pelnyEkran={{ lewo: przyciskMenu, tlo: C.bg }}
+        nakladka={menu && okno === 'ustawienia' ? <WarstwaMenu otwarte {...menuProps} /> : null}>
         <Ustawienia />
       </Arkusz>
       <Arkusz widoczny={okno === 'rozpiski'} onZamknij={() => setOkno(null)} tytul="📄 Rozpiski dnia" nazwa="rozpiski" wysokosc={0.98}>

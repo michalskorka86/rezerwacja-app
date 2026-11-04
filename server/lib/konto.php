@@ -124,6 +124,25 @@ function akcja_haslo_reset(array $u, array $d): void
     odpowiedz(['ok' => true]);
 }
 
+/**
+ * POST haslo_tymczasowe {id, haslo} — admin nadaje hasło tymczasowe (np. pracownik zapomniał swojego).
+ * Pracownik loguje się nim, a aplikacja od razu prosi o nowe (haslo_reset = 1). Telefony z tym kontem są wylogowane.
+ * Poprawka: w PWA admin mógł tylko oznaczyć „reset”, bez nowego hasła — kto zapomniał hasła, nie mógł się zalogować.
+ */
+function akcja_haslo_tymczasowe(array $u, array $d): void
+{
+    wymagaj_admina($u);
+    $id = liczba_calk($d, 'id', 1, PHP_INT_MAX);
+    if ($id === (int)$u['id']) throw new BladApi('zle_dane', 'Własne hasło zmień w „Zmień hasło”');
+    $haslo = trim((string)($d['haslo'] ?? ''));
+    if (mb_strlen($haslo) < 6) throw new BladApi('zle_dane', 'Hasło min. 6 znaków');
+    $st = baza()->prepare('UPDATE uzytkownicy SET haslo_hash = ?, haslo_reset = 1 WHERE id = ?');
+    $st->execute([password_hash($haslo, PASSWORD_DEFAULT), $id]);
+    if (!$st->rowCount()) throw new BladApi('zle_dane', 'Nie ma takiego użytkownika');
+    wyloguj_wszedzie($id);
+    odpowiedz(['ok' => true]);
+}
+
 /** POST uzytkownik_aktywny {id, aktywny}. Wyłączenie konta wylogowuje je ze wszystkich telefonów. */
 function akcja_uzytkownik_aktywny(array $u, array $d): void
 {

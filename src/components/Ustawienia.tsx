@@ -19,111 +19,234 @@ import { Suwak } from './ui/Przelacznik';
 import { PrzyciskGlowny } from './ui/Przyciski';
 import { ZmianaHasla } from './ZmianaHasla';
 
-type Zakladka = 'konto' | 'uzytkownicy' | 'powiadomienia';
-type RodzajPodstrony = null | 'haslo' | 'nowy' | 'problem';
+type Strona =
+  | { rodzaj: 'haslo' }
+  | { rodzaj: 'uzytkownicy' }
+  | { rodzaj: 'uzytkownik'; x: UzytkownikAdmin }
+  | { rodzaj: 'tymczasowe'; x: UzytkownikAdmin }
+  | { rodzaj: 'nowy' }
+  | { rodzaj: 'sms' }
+  | { rodzaj: 'powiadomienia' }
+  | { rodzaj: 'aktualizacje' }
+  | { rodzaj: 'problem' };
+
+const TYTULY: Record<Strona['rodzaj'], string> = {
+  haslo: '🔑 Zmień hasło',
+  uzytkownicy: '👥 Użytkownicy',
+  uzytkownik: '',
+  tymczasowe: '🔑 Hasło tymczasowe',
+  nowy: '＋ Nowy użytkownik',
+  sms: '💬 Powiadomienia SMS',
+  powiadomienia: '🔔 Powiadomienia',
+  aktualizacje: '⬇️ Aktualizacje',
+  problem: '📨 Zgłoś problem',
+};
+
+const nazwaMarki = (m: string) => (m === 'arsenal' ? 'Arsenał' : 'SILT');
+const nazwaRoli = (r: string) => (r === 'admin' ? '👑 Admin' : '👤 Instruktor');
 
 /**
- * Ustawienia (sh-ustawienia z PWA): Konto + 🔑 Zmień hasło; admin dodatkowo Użytkownicy i 🔔 Powiadomienia SMS.
- * Nowe w aplikacji (jak w SILT Lista): 📨 Zgłoś problem, wersja, ⬇️ Sprawdź aktualizację, Wyloguj.
+ * Ustawienia (uzgodnione z Michałem 04.11) — lista w grupach jak w Ustawieniach telefonu; każda pozycja otwiera
+ * osobny ekran („← Wstecz” wraca o jeden krok): Konto (Zmień hasło), Zespół — tylko admin (Użytkownicy, Powiadomienia SMS),
+ * Ten telefon (Powiadomienia, Aktualizacje), Pomoc (Zgłoś problem), Wyloguj.
  */
 export function Ustawienia() {
   const { konto, wyloguj } = useDane();
   const { zapytaj } = useKomunikaty();
-  const [zakladka, setZakladka] = useState<Zakladka>('konto');
-  const [podstrona, setPodstrona] = useState<RodzajPodstrony>(null);
+  const [stos, setStos] = useState<Strona[]>([]);
   const u = konto?.uzytkownik;
   if (!u) return null;
   const admin = u.rola_nazwa === 'admin';
+  const idz = (s: Strona) => setStos((st) => [...st, s]);
+  const wroc = () => setStos((st) => st.slice(0, -1));
+  /** podmień bieżący ekran (np. użytkownik po zmianie) */
+  const podmien = (s: Strona) => setStos((st) => [...st.slice(0, -1), s]);
 
-  if (podstrona) {
-    const tytul = podstrona === 'haslo' ? 'Zmień hasło' : podstrona === 'nowy' ? 'Nowy użytkownik' : 'Zgłoś problem';
+  const s = stos[stos.length - 1];
+  if (s) {
+    const tytul = s.rodzaj === 'uzytkownik' ? s.x.imie : TYTULY[s.rodzaj];
     return (
-      <Podstrona tytul={tytul} onWroc={() => setPodstrona(null)}>
-        {podstrona === 'haslo' ? <ZmianaHasla onGotowe={() => setPodstrona(null)} /> : null}
-        {podstrona === 'nowy' ? (
-          <NowyUzytkownik
-            onGotowe={() => {
-              setPodstrona(null);
-              setZakladka('uzytkownicy');
-            }}
+      <Podstrona key={stos.length} tytul={tytul} onWroc={wroc}>
+        {s.rodzaj === 'haslo' ? <ZmianaHasla onGotowe={wroc} /> : null}
+        {s.rodzaj === 'uzytkownicy' ? <Uzytkownicy mojeId={u.id} onWybierz={(x) => idz({ rodzaj: 'uzytkownik', x })} onDodaj={() => idz({ rodzaj: 'nowy' })} /> : null}
+        {s.rodzaj === 'uzytkownik' ? (
+          <Uzytkownik x={s.x} onZmiana={(x) => podmien({ rodzaj: 'uzytkownik', x })} onTymczasowe={() => idz({ rodzaj: 'tymczasowe', x: s.x })} />
+        ) : null}
+        {s.rodzaj === 'tymczasowe' ? (
+          <HasloTymczasowe
+            x={s.x}
+            onGotowe={(x) =>
+              setStos((st) => {
+                const bez = st.slice(0, -1);
+                return [...bez.slice(0, -1), { rodzaj: 'uzytkownik', x }];
+              })
+            }
+            onAnuluj={wroc}
           />
         ) : null}
-        {podstrona === 'problem' ? <ZglosProblem onGotowe={() => setPodstrona(null)} /> : null}
+        {s.rodzaj === 'nowy' ? <NowyUzytkownik onGotowe={wroc} /> : null}
+        {s.rodzaj === 'sms' ? <Powiadomienia /> : null}
+        {s.rodzaj === 'powiadomienia' ? (
+          <>
+            <Text style={styles.opisStrony}>
+              Telefon dostaje powiadomienie o nowej rezerwacji z formularza www (i o rezerwacjach dodanych przez innych z zespołu). Jeśli nie
+              przychodzą — wyślij próbne i pokaż wynik Michałowi.
+            </Text>
+            <TestPowiadomien />
+          </>
+        ) : null}
+        {s.rodzaj === 'aktualizacje' ? (
+          <>
+            <Grupa>
+              <Wiersz tekst="Wersja" wartosc={opisWersji(WERSJA_APLIKACJI)} ostatni />
+            </Grupa>
+            <Text style={styles.opisStrony}>Poprawki przychodzą same, przy uruchomieniu aplikacji. Tu możesz sprawdzić od razu.</Text>
+            <SprawdzAktualizacje />
+          </>
+        ) : null}
+        {s.rodzaj === 'problem' ? <ZglosProblem onGotowe={wroc} /> : null}
       </Podstrona>
     );
   }
 
   return (
-    <View>
-      {admin ? (
-        <View style={styles.zakladki}>
-          {(
-            [
-              ['konto', 'Konto'],
-              ['uzytkownicy', 'Użytkownicy'],
-              ['powiadomienia', '🔔 Powiadomienia'],
-            ] as const
-          ).map(([z, n]) => (
-            <Pressable key={z} onPress={() => setZakladka(z)} style={[styles.zakladka, zakladka === z && styles.zakladkaOn]} accessibilityState={{ selected: zakladka === z }}>
-              <Text style={[styles.zakladkaTxt, zakladka === z && styles.zakladkaTxtOn]} numberOfLines={1}>
-                {n}
-              </Text>
-            </Pressable>
-          ))}
+    <View style={styles.tresc}>
+      <View style={styles.profil}>
+        <Kolko imie={u.imie} marka={u.marka} rozmiar={48} />
+        <View style={{ flex: 1 }}>
+          <Text style={styles.imie} numberOfLines={1}>
+            {u.imie}
+          </Text>
+          <Text style={styles.maly} numberOfLines={1}>
+            {u.login} · {nazwaRoli(u.rola_nazwa)} · {nazwaMarki(u.marka)}
+          </Text>
         </View>
+      </View>
+
+      <Grupa tytul="Konto">
+        <Wiersz ikona="🔑" tekst="Zmień hasło" onPress={() => idz({ rodzaj: 'haslo' })} ostatni />
+      </Grupa>
+
+      {admin ? (
+        <Grupa tytul="Zespół">
+          <Wiersz ikona="👥" tekst="Użytkownicy" onPress={() => idz({ rodzaj: 'uzytkownicy' })} />
+          <Wiersz ikona="💬" tekst="Powiadomienia SMS" onPress={() => idz({ rodzaj: 'sms' })} ostatni />
+        </Grupa>
       ) : null}
 
-      <View style={styles.tresc}>
-        {zakladka === 'konto' || !admin ? (
-          <>
-            <Tytul tekst="Moje konto" />
-            <View style={styles.karta}>
-              <Text style={styles.imie}>{u.imie}</Text>
-              <Text style={styles.maly}>
-                {u.login} · {admin ? '👑 Admin' : '👤 Instruktor'} · {u.marka === 'arsenal' ? 'Arsenał' : 'SILT'}
-              </Text>
-            </View>
-            <Przycisk tekst="🔑 Zmień hasło" onPress={() => setPodstrona('haslo')} />
+      <Grupa tytul="Ten telefon">
+        <Wiersz ikona="🔔" tekst="Powiadomienia" onPress={() => idz({ rodzaj: 'powiadomienia' })} />
+        <Wiersz ikona="⬇️" tekst="Aktualizacje" wartosc={opisWersji(WERSJA_APLIKACJI)} onPress={() => idz({ rodzaj: 'aktualizacje' })} ostatni />
+      </Grupa>
 
-            <Tytul tekst="Aplikacja" odstep />
-            <View style={styles.karta}>
-              <Text style={styles.maly}>Wersja</Text>
-              <Text style={styles.wersja}>{opisWersji(WERSJA_APLIKACJI)}</Text>
-            </View>
-            <SprawdzAktualizacje />
-            <TestPowiadomien />
-            <Przycisk tekst="📨 Zgłoś problem" onPress={() => setPodstrona('problem')} />
-            <Przycisk
-              tekst="Wyloguj"
-              czerwony
-              onPress={() =>
-                zapytaj({ tytul: 'Wylogować się?', tekst: 'Dane rezerwacji zostaną usunięte z tego telefonu.', ok: 'Wyloguj', niebezpieczne: true, onOk: () => wyloguj() })
-              }
-            />
-          </>
-        ) : null}
+      <Grupa tytul="Pomoc">
+        <Wiersz ikona="📨" tekst="Zgłoś problem" onPress={() => idz({ rodzaj: 'problem' })} ostatni />
+      </Grupa>
 
-        {zakladka === 'uzytkownicy' && admin ? <Uzytkownicy mojeId={u.id} onDodaj={() => setPodstrona('nowy')} /> : null}
-        {zakladka === 'powiadomienia' && admin ? <Powiadomienia /> : null}
-      </View>
+      <Grupa>
+        <Wiersz
+          tekst="Wyloguj"
+          czerwony
+          srodek
+          ostatni
+          onPress={() =>
+            zapytaj({ tytul: 'Wylogować się?', tekst: 'Dane rezerwacji zostaną usunięte z tego telefonu.', ok: 'Wyloguj', niebezpieczne: true, onOk: () => wyloguj() })
+          }
+        />
+      </Grupa>
+      <Text style={styles.stopka}>Rezerwacje · {opisWersji(WERSJA_APLIKACJI)}</Text>
     </View>
   );
 }
 
 function Podstrona({ tytul, onWroc, children }: { tytul: string; onWroc: () => void; children: React.ReactNode }) {
-  usePodstronaArkusza(onWroc);
+  usePodstronaArkusza(onWroc, tytul);
+  return <View style={styles.tresc}>{children}</View>;
+}
+
+/** Grupa wierszy na białym tle (jak w Ustawieniach telefonu), z szarym nagłówkiem nad nią. */
+function Grupa({ tytul, children }: { tytul?: string; children: React.ReactNode }) {
   return (
-    <View>
-      <Pressable onPress={onWroc} style={styles.wroc} accessibilityRole="button" accessibilityLabel="Wróć">
-        <Text style={styles.wrocStrzalka}>←</Text>
-        <Text style={styles.wrocTxt}>{tytul}</Text>
-      </Pressable>
-      <View style={styles.tresc}>{children}</View>
+    <View style={{ marginBottom: 14 }}>
+      {tytul ? <Text style={styles.grupaTytul}>{tytul.toUpperCase()}</Text> : null}
+      <View style={styles.grupa}>{children}</View>
     </View>
   );
 }
 
-const Tytul = ({ tekst, odstep }: { tekst: string; odstep?: boolean }) => <Text style={[styles.sekcja, odstep && { marginTop: 22 }]}>{tekst.toUpperCase()}</Text>;
+function Wiersz({
+  ikona,
+  tekst,
+  podpis,
+  wartosc,
+  onPress,
+  czerwony,
+  pomaranczowy,
+  srodek,
+  ostatni,
+  wylaczony,
+  lewo,
+}: {
+  ikona?: string;
+  tekst: string;
+  podpis?: string;
+  wartosc?: string;
+  onPress?: () => void;
+  czerwony?: boolean;
+  pomaranczowy?: boolean;
+  srodek?: boolean;
+  ostatni?: boolean;
+  wylaczony?: boolean;
+  lewo?: React.ReactNode;
+}) {
+  const kolor = czerwony ? C.red : pomaranczowy ? C.pomarancz : C.text;
+  const tresc = (
+    <>
+      {lewo}
+      {ikona ? <Text style={styles.wierszIkona}>{ikona}</Text> : null}
+      <View style={srodek ? undefined : { flex: 1 }}>
+        <Text style={[styles.wierszTxt, { color: kolor }, (czerwony || pomaranczowy) && { fontFamily: Fonts.semibold }]} numberOfLines={1}>
+          {tekst}
+        </Text>
+        {podpis ? (
+          <Text style={styles.maly} numberOfLines={1}>
+            {podpis}
+          </Text>
+        ) : null}
+      </View>
+      {wartosc ? (
+        <Text style={styles.wierszWartosc} numberOfLines={1}>
+          {wartosc}
+        </Text>
+      ) : null}
+      {onPress && !srodek ? <Text style={styles.strzalka}>›</Text> : null}
+    </>
+  );
+  const styl = [styles.wiersz, srodek && { justifyContent: 'center' as const }, !ostatni && styles.wierszKreska];
+  if (!onPress) return <View style={styl}>{tresc}</View>;
+  return (
+    <Pressable onPress={onPress} disabled={wylaczony} accessibilityRole="button" style={({ pressed }) => [...styl, (pressed || wylaczony) && { backgroundColor: C.bg }]}>
+      {tresc}
+    </Pressable>
+  );
+}
+
+/** Kółko z pierwszą literą imienia — zielone SILT, niebieskie Arsenał, szare dla wyłączonego konta. */
+function Kolko({ imie, marka, rozmiar = 36, szare }: { imie: string; marka: string; rozmiar?: number; szare?: boolean }) {
+  return (
+    <View
+      style={{
+        width: rozmiar,
+        height: rozmiar,
+        borderRadius: rozmiar / 2,
+        backgroundColor: szare ? C.border : marka === 'arsenal' ? C.blue : C.green,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+      <Text style={{ color: szare ? C.text2 : '#fff', fontFamily: Fonts.bold, fontSize: rozmiar * 0.42 }}>{imie.trim().charAt(0).toUpperCase() || '?'}</Text>
+    </View>
+  );
+}
 
 function Przycisk({ tekst, onPress, czerwony, wylaczony }: { tekst: string; onPress: () => void; czerwony?: boolean; wylaczony?: boolean }) {
   return (
@@ -217,12 +340,10 @@ function SprawdzAktualizacje() {
   return <Przycisk tekst={trwa ? '⏳ Sprawdzam…' : '⬇️ Sprawdź aktualizację'} onPress={sprawdz} wylaczony={trwa} />;
 }
 
-/** Zakładka Użytkownicy (admin): lista, Reset hasła, Dezaktywuj / Aktywuj, + Dodaj użytkownika. */
-function Uzytkownicy({ mojeId, onDodaj }: { mojeId: number; onDodaj: () => void }) {
-  const { toast, zapytaj } = useKomunikaty();
+/** Użytkownicy (admin): sama lista — aktywne i wyłączone osobno; dotknięcie otwiera ekran użytkownika. */
+function Uzytkownicy({ mojeId, onWybierz, onDodaj }: { mojeId: number; onWybierz: (x: UzytkownikAdmin) => void; onDodaj: () => void }) {
   const [lista, setLista] = useState<UzytkownikAdmin[] | null>(null);
   const [blad, setBlad] = useState<string | null>(null);
-  const [trwa, setTrwa] = useState<number | null>(null);
 
   const pobierz = useCallback(async () => {
     try {
@@ -238,73 +359,122 @@ function Uzytkownicy({ mojeId, onDodaj }: { mojeId: number; onDodaj: () => void 
     Promise.resolve().then(pobierz);
   }, [pobierz]);
 
-  const akcja = (x: UzytkownikAdmin, rodzaj: 'reset' | 'aktywny') =>
+  const wiersz = (x: UzytkownikAdmin, i: number, n: number) => {
+    const ja = x.id === mojeId;
+    return (
+      <Wiersz
+        key={x.id}
+        lewo={<Kolko imie={x.imie} marka={x.marka} szare={!x.aktywny} />}
+        tekst={x.imie + (ja ? ' (to Ty)' : '')}
+        podpis={`${nazwaRoli(x.rola_nazwa)} · ${nazwaMarki(x.marka)}${x.haslo_reset ? ' · czeka na nowe hasło' : ''}`}
+        onPress={ja ? undefined : () => onWybierz(x)}
+        ostatni={i === n - 1}
+      />
+    );
+  };
+  const aktywni = (lista ?? []).filter((x) => x.aktywny);
+  const wylaczeni = (lista ?? []).filter((x) => !x.aktywny);
+
+  return (
+    <>
+      {blad ? <Text style={styles.blad}>⚠️ {blad}</Text> : null}
+      {!lista && !blad ? <Text style={styles.pusto}>Ładowanie...</Text> : null}
+      {aktywni.length ? <Grupa tytul="Aktywne konta">{aktywni.map((x, i) => wiersz(x, i, aktywni.length))}</Grupa> : null}
+      {wylaczeni.length ? <Grupa tytul="Wyłączone">{wylaczeni.map((x, i) => wiersz(x, i, wylaczeni.length))}</Grupa> : null}
+      <PrzyciskGlowny tekst="＋ Dodaj użytkownika" onPress={onDodaj} style={{ backgroundColor: C.green, marginTop: 4 }} />
+    </>
+  );
+}
+
+/** Ekran jednego użytkownika (admin): dane, hasło (tymczasowe / wymuś zmianę), włącz / wyłącz konto. */
+function Uzytkownik({ x, onZmiana, onTymczasowe }: { x: UzytkownikAdmin; onZmiana: (x: UzytkownikAdmin) => void; onTymczasowe: () => void }) {
+  const { toast, zapytaj } = useKomunikaty();
+  const [trwa, setTrwa] = useState(false);
+
+  const wykonaj = async (f: () => Promise<unknown>, po: UzytkownikAdmin, komunikat: string) => {
+    setTrwa(true);
+    try {
+      await f();
+      toast(komunikat);
+      onZmiana(po);
+    } catch (e) {
+      toast('❌ ' + komunikatBledu(e));
+    } finally {
+      setTrwa(false);
+    }
+  };
+
+  const wymus = () =>
     zapytaj({
-      tytul: rodzaj === 'reset' ? 'Zresetować hasło?' : x.aktywny ? 'Dezaktywować konto?' : 'Aktywować konto?',
-      tekst:
-        rodzaj === 'reset'
-          ? `${x.imie} przy następnym otwarciu aplikacji będzie musiał(a) ustawić nowe hasło.`
-          : x.aktywny
-            ? `${x.imie} nie będzie mógł (mogła) się zalogować, a telefony z tym kontem zostaną wylogowane.`
-            : `${x.imie} znów będzie mógł (mogła) się zalogować.`,
-      ok: rodzaj === 'reset' ? 'Resetuj hasło' : x.aktywny ? 'Dezaktywuj' : 'Aktywuj',
-      niebezpieczne: rodzaj === 'reset' || x.aktywny,
-      onOk: async () => {
-        setTrwa(x.id);
-        try {
-          if (rodzaj === 'reset') {
-            await klient('haslo_reset', { body: { id: x.id } });
-            toast('✅ Hasło zresetowane');
-          } else {
-            await klient('uzytkownik_aktywny', { body: { id: x.id, aktywny: !x.aktywny } });
-            toast('✅ Zapisano');
-          }
-          await pobierz();
-        } catch (e) {
-          toast('❌ ' + komunikatBledu(e));
-        } finally {
-          setTrwa(null);
-        }
-      },
+      tytul: 'Wymusić zmianę hasła?',
+      tekst: `${x.imie} zaloguje się dotychczasowym hasłem, a aplikacja od razu poprosi o nowe. Jeśli nie pamięta hasła — użyj „Nadaj hasło tymczasowe”.`,
+      ok: 'Wymuś zmianę',
+      onOk: () => wykonaj(() => klient('haslo_reset', { body: { id: x.id } }), { ...x, haslo_reset: true }, '✅ Przy następnym logowaniu poprosi o nowe hasło'),
+    });
+
+  const wlacz = () =>
+    zapytaj({
+      tytul: x.aktywny ? 'Wyłączyć konto?' : 'Włączyć konto?',
+      tekst: x.aktywny ? `${x.imie} nie będzie mógł (mogła) się zalogować, a telefony z tym kontem zostaną wylogowane.` : `${x.imie} znów będzie mógł (mogła) się zalogować.`,
+      ok: x.aktywny ? 'Wyłącz' : 'Włącz',
+      niebezpieczne: x.aktywny,
+      onOk: () => wykonaj(() => klient('uzytkownik_aktywny', { body: { id: x.id, aktywny: !x.aktywny } }), { ...x, aktywny: !x.aktywny }, '✅ Zapisano'),
     });
 
   return (
     <>
-      <Tytul tekst="Użytkownicy" />
-      {blad ? <Text style={styles.blad}>⚠️ {blad}</Text> : null}
-      {!lista && !blad ? <Text style={styles.pusto}>Ładowanie...</Text> : null}
-      {(lista ?? []).map((x) => {
-        const ja = x.id === mojeId;
-        return (
-          <View key={x.id} style={[styles.karta, { gap: 6 }]}>
-            <View style={styles.wiersz}>
-              <Text style={styles.imieMale}>{x.imie}</Text>
-              <Text style={[styles.znaczek, x.rola_nazwa === 'admin' ? styles.znaczekAdmin : styles.znaczekInstr]}>{x.rola_nazwa === 'admin' ? 'Admin' : 'Instruktor'}</Text>
-              {!x.aktywny ? <Text style={[styles.znaczek, styles.znaczekOff]}>Nieaktywny</Text> : null}
-              {x.haslo_reset ? <Text style={[styles.znaczek, styles.znaczekReset]}>Hasło zresetowane</Text> : null}
-            </View>
-            <Text style={styles.maly}>
-              {x.login} · {x.marka === 'arsenal' ? 'Arsenał' : 'SILT'}
-              {ja ? ' · to Ty' : ''}
-            </Text>
-            {!ja ? (
-              <View style={styles.akcje}>
-                <Pressable
-                  onPress={() => akcja(x, 'reset')}
-                  disabled={trwa === x.id}
-                  style={({ pressed }) => [styles.akcja, { backgroundColor: '#fff3e0', borderColor: '#ffcc80' }, pressed && { opacity: 0.7 }]}>
-                  <Text style={[styles.akcjaTxt, { color: C.pomarancz }]}>Reset hasła</Text>
-                </Pressable>
-                <Pressable onPress={() => akcja(x, 'aktywny')} disabled={trwa === x.id} style={({ pressed }) => [styles.akcja, pressed && { opacity: 0.7 }]}>
-                  <Text style={styles.akcjaTxt}>{x.aktywny ? 'Dezaktywuj' : 'Aktywuj'}</Text>
-                </Pressable>
-              </View>
-            ) : null}
-          </View>
-        );
-      })}
-      <PrzyciskGlowny tekst="+ Dodaj użytkownika" onPress={onDodaj} style={{ backgroundColor: C.green, marginTop: 4 }} />
+      <View style={[styles.profil, styles.profilSrodek]}>
+        <Kolko imie={x.imie} marka={x.marka} rozmiar={64} szare={!x.aktywny} />
+        <Text style={styles.imie}>{x.imie}</Text>
+        <Text style={styles.maly}>
+          login: {x.login}
+          {!x.aktywny ? ' · konto wyłączone' : ''}
+        </Text>
+      </View>
+      <Grupa tytul="Dane">
+        <Wiersz tekst="Rola" wartosc={nazwaRoli(x.rola_nazwa)} />
+        <Wiersz tekst="Firma" wartosc={nazwaMarki(x.marka)} ostatni />
+      </Grupa>
+      <Grupa tytul="Hasło">
+        <Wiersz ikona="🔑" tekst="Nadaj hasło tymczasowe" pomaranczowy onPress={onTymczasowe} wylaczony={trwa} />
+        <Wiersz ikona="↺" tekst="Wymuś zmianę hasła" podpis={x.haslo_reset ? 'Już ustawione — czeka na nowe hasło' : undefined} onPress={wymus} wylaczony={trwa} ostatni />
+      </Grupa>
+      <Grupa>
+        <Wiersz tekst={x.aktywny ? 'Wyłącz konto' : 'Włącz konto'} czerwony={x.aktywny} srodek ostatni onPress={wlacz} wylaczony={trwa} />
+      </Grupa>
     </>
+  );
+}
+
+/** Admin wpisuje hasło tymczasowe i podaje je pracownikowi; po zalogowaniu aplikacja prosi o nowe. */
+function HasloTymczasowe({ x, onGotowe, onAnuluj }: { x: UzytkownikAdmin; onGotowe: (x: UzytkownikAdmin) => void; onAnuluj: () => void }) {
+  const { toast, pasekBledu } = useKomunikaty();
+  const [haslo, setHaslo] = useState('');
+  const [trwa, setTrwa] = useState(false);
+  const zapisz = async () => {
+    if (haslo.trim().length < 6) return toast('❌ Hasło min. 6 znaków');
+    setTrwa(true);
+    try {
+      await klient('haslo_tymczasowe', { body: { id: x.id, haslo: haslo.trim() } });
+      pasekBledu(null);
+      toast(`✅ Hasło tymczasowe ustawione — podaj je: ${x.imie}`);
+      onGotowe({ ...x, haslo_reset: true });
+    } catch (e) {
+      pasekBledu('❌ ' + komunikatBledu(e));
+    } finally {
+      setTrwa(false);
+    }
+  };
+  return (
+    <View style={{ gap: 14 }}>
+      <Text style={styles.opisStrony}>
+        Wpisz hasło i podaj je osobie: {x.imie} (login: {x.login}). Po zalogowaniu aplikacja od razu poprosi o ustawienie własnego hasła. Telefony z
+        tym kontem zostaną wylogowane.
+      </Text>
+      <Pole etykieta="Hasło tymczasowe" value={haslo} onChangeText={setHaslo} placeholder="min. 6 znaków" autoCapitalize="none" autoCorrect={false} />
+      <PrzyciskGlowny tekst="Zapisz hasło" onPress={zapisz} trwa={trwa} style={{ backgroundColor: C.green }} />
+      <Przycisk tekst="Anuluj" onPress={onAnuluj} />
+    </View>
   );
 }
 
@@ -399,7 +569,7 @@ function Powiadomienia() {
 
   return (
     <>
-      <Tytul tekst="Powiadomienia SMS" />
+      <Text style={styles.opisStrony}>SMS na telefon firmowy, gdy przyjdzie nowa rezerwacja z formularza www albo nowy wynajem. Dotyczy całej firmy.</Text>
       {blad ? <Text style={styles.blad}>⚠️ {blad}</Text> : null}
       {!sms && !blad ? <Text style={styles.pusto}>Ładowanie...</Text> : null}
       {sms ? (
@@ -465,13 +635,19 @@ function ZglosProblem({ onGotowe }: { onGotowe: () => void }) {
 }
 
 const styles = StyleSheet.create({
-  zakladki: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: C.border },
-  zakladka: { flex: 1, paddingVertical: 13, paddingHorizontal: 6, alignItems: 'center', borderBottomWidth: 2, borderBottomColor: 'transparent' },
-  zakladkaOn: { borderBottomColor: C.green },
-  zakladkaTxt: { fontFamily: Fonts.regular, fontSize: 13, color: C.text2 },
-  zakladkaTxtOn: { fontFamily: Fonts.bold, color: C.green },
+  profil: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: C.surface, borderRadius: Size.radius, padding: 14, marginBottom: 16 },
+  profilSrodek: { flexDirection: 'column', gap: 6, paddingVertical: 18 },
+  grupaTytul: { fontFamily: Fonts.semibold, fontSize: 11, color: C.text2, letterSpacing: 0.6, paddingHorizontal: 4, paddingBottom: 6 },
+  grupa: { backgroundColor: C.surface, borderRadius: Size.radius, overflow: 'hidden' },
+  wiersz: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 52, paddingVertical: 8, paddingHorizontal: 14 },
+  wierszKreska: { borderBottomWidth: 1, borderBottomColor: C.border },
+  wierszIkona: { fontSize: 16, width: 22, textAlign: 'center' },
+  wierszTxt: { fontFamily: Fonts.regular, fontSize: 15, color: C.text },
+  wierszWartosc: { fontFamily: Fonts.regular, fontSize: 13, color: C.text2, maxWidth: '55%' },
+  strzalka: { fontSize: 20, color: C.text3, marginTop: -2 },
+  opisStrony: { fontFamily: Fonts.regular, fontSize: 13, color: C.text2, lineHeight: 19, paddingHorizontal: 4, marginBottom: 12 },
+  stopka: { fontFamily: Fonts.regular, fontSize: 11, color: C.text3, textAlign: 'center', marginTop: 4 },
   tresc: { padding: 16 },
-  sekcja: { fontFamily: Fonts.bold, fontSize: 13, color: C.text2, letterSpacing: 0.5, paddingBottom: 8, borderBottomWidth: 1, borderBottomColor: C.border, marginBottom: 12 },
   karta: { backgroundColor: C.surface, borderWidth: 0.5, borderColor: C.border, borderRadius: 12, paddingVertical: 12, paddingHorizontal: 14, marginBottom: 8 },
   imie: { fontFamily: Fonts.semibold, fontSize: 15, color: C.text },
   imieMale: { fontFamily: Fonts.semibold, fontSize: 14, color: C.text },
@@ -479,20 +655,8 @@ const styles = StyleSheet.create({
   wersja: { fontFamily: Fonts.medium, fontSize: 14, color: C.text, marginTop: 2 },
   przycisk: { minHeight: 48, borderWidth: 0.5, borderColor: C.border, borderRadius: 10, paddingVertical: 12, alignItems: 'center', justifyContent: 'center', marginTop: 8, backgroundColor: C.surface },
   przyciskTxt: { fontFamily: Fonts.regular, fontSize: 14, color: C.text },
-  wiersz: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 },
-  znaczek: { fontFamily: Fonts.regular, fontSize: 11, paddingVertical: 2, paddingHorizontal: 8, borderRadius: 4, overflow: 'hidden' },
-  znaczekAdmin: { backgroundColor: '#e8f5e9', color: C.green },
-  znaczekInstr: { backgroundColor: '#e3f2fd', color: '#1565c0' },
-  znaczekOff: { backgroundColor: '#ffebee', color: '#c62828' },
-  znaczekReset: { backgroundColor: '#fff3e0', color: C.pomarancz },
-  akcje: { flexDirection: 'row', gap: 8, marginTop: 4 },
-  akcja: { minHeight: 40, paddingVertical: 8, paddingHorizontal: 14, borderRadius: 6, borderWidth: 0.5, borderColor: C.border, backgroundColor: C.bg, justifyContent: 'center' },
-  akcjaTxt: { fontFamily: Fonts.medium, fontSize: 13, color: C.text },
   blad: { fontFamily: Fonts.medium, fontSize: 13, color: C.pomarancz, marginBottom: 10 },
   pusto: { textAlign: 'center', color: C.text3, fontSize: 14, fontFamily: Fonts.regular, paddingVertical: 24 },
-  wroc: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 12, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: C.border },
-  wrocStrzalka: { fontSize: 20, color: C.text2, paddingRight: 4 },
-  wrocTxt: { fontFamily: Fonts.semibold, fontSize: 16, color: C.text },
   wybory: { flexDirection: 'row', gap: 8 },
   wybor: { flex: 1, minHeight: 46, borderRadius: Size.rs, borderWidth: 1.5, borderColor: C.border, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' },
   wyborTxt: { fontFamily: Fonts.regular, fontSize: 14, color: C.text },
