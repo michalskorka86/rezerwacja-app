@@ -52,7 +52,7 @@ test('klient: brak sieci i nieczytelna odpowiedź', async () => {
   const k = utworzKlienta({ url: 'u', wersja: '1', token: () => null, fetchFn: bezSieci });
   await assert.rejects(k('ja'), (e: unknown) => toBrakSieci(e) && (e as Error).message.startsWith('Brak połączenia'));
   const k2 = utworzKlienta({ url: 'u', wersja: '1', token: () => null, fetchFn: atrapa(500, '<html>Fatal error</html>') });
-  await assert.rejects(k2('ja'), (e: unknown) => e instanceof BladApi && e.kod === 'serwer' && e.message.includes('500'));
+  await assert.rejects(k2('ja'), (e: unknown) => e instanceof BladApi && e.kod === 'serwer' && !e.message.includes('500') && !!e.przyczyna?.includes('HTTP 500'));
 });
 
 // ── Z prawdziwym serwerem PHP (GitHub „Sprawdź kod”, lokalnie: REZ_API=http://127.0.0.1:8765/api.php) ──

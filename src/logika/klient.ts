@@ -72,7 +72,8 @@ export function utworzKlienta(u: UstawieniaKlienta): Klient {
       try {
         j = JSON.parse(tekst) as typeof j;
       } catch {
-        throw new BladApi('serwer', `Serwer odpowiedział niezrozumiale (kod ${odp.status}). Spróbuj ponownie za chwilę.`, odp.status);
+        // bez kodów i żargonu dla pracownika; szczegóły (kod HTTP, początek odpowiedzi) idą do logu błędów
+        throw new BladApi('serwer', 'Nie można połączyć się z serwerem. Spróbuj ponownie za chwilę.', odp.status, `${akcja}: HTTP ${odp.status}, ${tekst.slice(0, 120)}`);
       }
     } finally {
       clearTimeout(zegar);

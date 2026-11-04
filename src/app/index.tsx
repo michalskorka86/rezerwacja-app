@@ -233,7 +233,7 @@ export default function Kalendarz() {
           }}
           style={({ pressed }) => [styles.offline, pressed && { opacity: 0.7 }]}>
           <Text style={styles.offlineTxt}>
-            {odswiezam ? '⏳ Odświeżam…' : `⚠️ ${bladOdswiezania} Pokazuję dane z godz. ${czasDanych} — dotknij, aby odświeżyć.`}
+            {odswiezam ? '⏳ Odświeżam…' : `⚠️ Brak połączenia z serwerem. Pokazuję dane z godz. ${czasDanych} — dotknij, aby odświeżyć.`}
           </Text>
         </Pressable>
       ) : null}

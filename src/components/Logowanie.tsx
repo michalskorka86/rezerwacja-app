@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { C, Fonts, Size } from '@/constants/theme';
@@ -8,7 +8,7 @@ import { useDane } from '@/stan/DaneProvider';
 
 import { PrzyciskGlowny } from './ui/Przyciski';
 
-/** Ekran logowania jak index.php PWA: 🎯, „Panel Rezerwacji”, login, hasło, „Zaloguj się”. */
+/** Ekran logowania: loga SILT i Arsenał (zamiast 🎯 z PWA — uzgodnione z Michałem 04.11), „Panel Rezerwacji”, login, hasło, „Zaloguj się”. */
 export function Logowanie() {
   const { zaloguj } = useDane();
   const [login, setLogin] = useState('');
@@ -37,9 +37,12 @@ export function Logowanie() {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.flex}>
         <ScrollView contentContainerStyle={styles.wrap} keyboardShouldPersistTaps="handled">
           <View style={styles.logo}>
-            <Text style={styles.logoIkona}>🎯</Text>
+            <View style={styles.loga}>
+              <Image source={require('../../assets/images/logo-silt.png')} style={styles.logoSilt} resizeMode="contain" accessibilityLabel="SILT Paintball" />
+              <View style={styles.logaKreska} />
+              <Image source={require('../../assets/images/logo-arsenal.png')} style={styles.logoArsenal} resizeMode="contain" accessibilityLabel="Arsenał Paintball" />
+            </View>
             <Text style={styles.logoTekst}>Panel Rezerwacji</Text>
-            <Text style={styles.logoPod}>SILT · ARSENAŁ Paintball</Text>
           </View>
 
           {blad ? <Text style={styles.alert}>{blad}</Text> : null}
@@ -95,9 +98,11 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   wrap: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: 40, paddingHorizontal: 28, gap: 20 },
   logo: { alignItems: 'center' },
-  logoIkona: { fontSize: 48, marginBottom: 8 },
+  loga: { flexDirection: 'row', alignItems: 'center', gap: 18, marginBottom: 22 },
+  logoSilt: { width: 150, height: 43 },
+  logoArsenal: { width: 78, height: 80 },
+  logaKreska: { width: 1, height: 56, backgroundColor: C.border },
   logoTekst: { fontFamily: Fonts.bold, fontSize: 22, letterSpacing: -0.3, color: C.text },
-  logoPod: { fontFamily: Fonts.regular, fontSize: 13, color: C.text2, marginTop: 3 },
   alert: {
     alignSelf: 'stretch',
     maxWidth: 380,
