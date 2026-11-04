@@ -4,6 +4,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { C, cien, Fonts, Size } from '@/constants/theme';
 
+import { Ikona, type NazwaIkony } from '../ui/Ikona';
+
 export type PozycjaMenu = 'kalendarz' | 'wynajem' | 'zadania' | 'rozpiski' | 'odswiez' | 'ustawienia';
 
 type Props = {
@@ -44,7 +46,7 @@ export function WarstwaMenu({ otwarte, aktywna, logo, imie, opis, ileZadan, arse
   if (!otwarte) return null;
   const przesun = anim.interpolate({ inputRange: [0, 1], outputRange: [-300, 0] });
 
-  const poz = (p: PozycjaMenu, tekst: string, ile = 0, czerwona = false) => {
+  const poz = (p: PozycjaMenu, ikona: NazwaIkony, tekst: string, ile = 0) => {
     const on = p === aktywna;
     return (
       <Pressable
@@ -53,7 +55,8 @@ export function WarstwaMenu({ otwarte, aktywna, logo, imie, opis, ileZadan, arse
         accessibilityRole="button"
         accessibilityState={{ selected: on }}
         style={({ pressed }) => [styles.poz, on && styles.pozOn, pressed && { backgroundColor: C.bg }]}>
-        <Text style={[styles.pozTxt, on && styles.pozTxtOn, czerwona && { color: C.red }]} numberOfLines={1}>
+        <Ikona nazwa={ikona} rozmiar={20} kolor={on ? C.green : C.text2} />
+        <Text style={[styles.pozTxt, on && styles.pozTxtOn]} numberOfLines={1}>
           {tekst}
         </Text>
         {ile > 0 ? (
@@ -74,18 +77,18 @@ export function WarstwaMenu({ otwarte, aktywna, logo, imie, opis, ileZadan, arse
         <ScrollView contentContainerStyle={styles.tresc} bounces={false}>
           {logo ? <Image source={{ uri: logo }} style={styles.logo} resizeMode="contain" accessibilityLabel="Logo" /> : null}
           <Text style={styles.imie} numberOfLines={1}>
-            👤 {imie}
+            {imie}
           </Text>
           <Text style={styles.opis} numberOfLines={1}>
             {opis}
           </Text>
-          {poz('kalendarz', '📅 Kalendarz')}
-          {poz('wynajem', '📦 Wynajem')}
-          {poz('zadania', '📋 Zadania', ileZadan)}
-          {arsenal ? poz('rozpiski', '📄 Rozpiski') : null}
+          {poz('kalendarz', 'calendar-outline', 'Kalendarz')}
+          {poz('wynajem', 'cube-outline', 'Wynajem')}
+          {poz('zadania', 'clipboard-outline', 'Zadania', ileZadan)}
+          {arsenal ? poz('rozpiski', 'document-text-outline', 'Rozpiski') : null}
           <View style={styles.kreska} />
-          {poz('odswiez', '🔄 Odśwież')}
-          {poz('ustawienia', '⚙️ Ustawienia')}
+          {poz('odswiez', 'refresh', 'Odśwież')}
+          {poz('ustawienia', 'settings-outline', 'Ustawienia')}
         </ScrollView>
         <Pressable onPress={onZamknij} style={({ pressed }) => [styles.zamknij, pressed && { opacity: 0.7 }]} accessibilityRole="button">
           <Text style={styles.zamknijTxt}>✕ Zamknij</Text>
@@ -102,7 +105,7 @@ const styles = StyleSheet.create({
   logo: { height: 30, width: 110, marginBottom: 8 },
   imie: { fontFamily: Fonts.semibold, fontSize: 15, color: C.text },
   opis: { fontFamily: Fonts.regular, fontSize: 13, color: C.text2, marginBottom: 14 },
-  poz: { flexDirection: 'row', alignItems: 'center', minHeight: 48, paddingHorizontal: 12, borderRadius: 10 },
+  poz: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 48, paddingHorizontal: 12, borderRadius: 10 },
   pozOn: { backgroundColor: C.greenL },
   pozTxt: { flex: 1, fontFamily: Fonts.medium, fontSize: 15, color: C.text },
   pozTxtOn: { fontFamily: Fonts.semibold, color: C.green },

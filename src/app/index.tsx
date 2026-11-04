@@ -352,7 +352,7 @@ export default function Kalendarz() {
       <Arkusz
         widoczny={okno === 'wynajem'}
         onZamknij={() => (menu ? setMenu(false) : setOkno(null))}
-        tytul="📦 Wynajem sprzętu"
+        tytul="Wynajem sprzętu"
         nazwa="wynajem"
         pelnyEkran={{ lewo: przyciskMenu }}
         nakladka={menu && okno === 'wynajem' ? <WarstwaMenu otwarte {...menuProps} /> : null}>
@@ -361,7 +361,7 @@ export default function Kalendarz() {
       <Arkusz
         widoczny={okno === 'zadania'}
         onZamknij={() => (menu ? setMenu(false) : setOkno(null))}
-        tytul="📋 Zadania"
+        tytul="Zadania"
         nazwa="zadania"
         bezPaddingu
         pelnyEkran={{ lewo: przyciskMenu }}
@@ -372,7 +372,7 @@ export default function Kalendarz() {
       <Arkusz
         widoczny={okno === 'ustawienia'}
         onZamknij={() => (menu ? setMenu(false) : setOkno(null))}
-        tytul="⚙️ Ustawienia"
+        tytul="Ustawienia"
         nazwa="ustawienia"
         bezPaddingu
         pelnyEkran={{ lewo: przyciskMenu, tlo: C.bg }}

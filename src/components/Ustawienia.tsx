@@ -13,6 +13,7 @@ import { zglos, zglosProblem } from '@/stan/zglos';
 
 import { opisWersji, pobierzIPrzeladuj } from './Aktualizacje';
 import { usePodstronaArkusza } from './ui/Arkusz';
+import { Ikona, type NazwaIkony } from './ui/Ikona';
 import { useKomunikaty } from './ui/Komunikaty';
 import { Etykieta, Pole } from './ui/Pola';
 import { Suwak } from './ui/Przelacznik';
@@ -31,15 +32,15 @@ type Strona =
   | { rodzaj: 'problem' };
 
 const TYTULY: Record<Strona['rodzaj'], string> = {
-  haslo: '🔑 Zmień hasło',
-  uzytkownicy: '👥 Użytkownicy',
+  haslo: 'Zmień hasło',
+  uzytkownicy: 'Użytkownicy',
   uzytkownik: '',
-  tymczasowe: '🔑 Hasło tymczasowe',
-  nowy: '＋ Nowy użytkownik',
-  sms: '💬 Powiadomienia SMS',
-  powiadomienia: '🔔 Powiadomienia',
-  aktualizacje: '⬇️ Aktualizacje',
-  problem: '📨 Zgłoś problem',
+  tymczasowe: 'Hasło tymczasowe',
+  nowy: 'Nowy użytkownik',
+  sms: 'Powiadomienia SMS',
+  powiadomienia: 'Powiadomienia',
+  aktualizacje: 'Aktualizacje',
+  problem: 'Zgłoś problem',
 };
 
 const nazwaMarki = (m: string) => (m === 'arsenal' ? 'Arsenał' : 'SILT');
@@ -124,23 +125,23 @@ export function Ustawienia() {
       </View>
 
       <Grupa tytul="Konto">
-        <Wiersz ikona="🔑" tekst="Zmień hasło" onPress={() => idz({ rodzaj: 'haslo' })} ostatni />
+        <Wiersz ikona="key-outline" tekst="Zmień hasło" onPress={() => idz({ rodzaj: 'haslo' })} ostatni />
       </Grupa>
 
       {admin ? (
         <Grupa tytul="Zespół">
-          <Wiersz ikona="👥" tekst="Użytkownicy" onPress={() => idz({ rodzaj: 'uzytkownicy' })} />
-          <Wiersz ikona="💬" tekst="Powiadomienia SMS" onPress={() => idz({ rodzaj: 'sms' })} ostatni />
+          <Wiersz ikona="people-outline" tekst="Użytkownicy" onPress={() => idz({ rodzaj: 'uzytkownicy' })} />
+          <Wiersz ikona="chatbubble-ellipses-outline" tekst="Powiadomienia SMS" onPress={() => idz({ rodzaj: 'sms' })} ostatni />
         </Grupa>
       ) : null}
 
       <Grupa tytul="Ten telefon">
-        <Wiersz ikona="🔔" tekst="Powiadomienia" onPress={() => idz({ rodzaj: 'powiadomienia' })} />
-        <Wiersz ikona="⬇️" tekst="Aktualizacje" wartosc={opisWersji(WERSJA_APLIKACJI)} onPress={() => idz({ rodzaj: 'aktualizacje' })} ostatni />
+        <Wiersz ikona="notifications-outline" tekst="Powiadomienia" onPress={() => idz({ rodzaj: 'powiadomienia' })} />
+        <Wiersz ikona="download-outline" tekst="Aktualizacje" wartosc={opisWersji(WERSJA_APLIKACJI)} onPress={() => idz({ rodzaj: 'aktualizacje' })} ostatni />
       </Grupa>
 
       <Grupa tytul="Pomoc">
-        <Wiersz ikona="📨" tekst="Zgłoś problem" onPress={() => idz({ rodzaj: 'problem' })} ostatni />
+        <Wiersz ikona="help-buoy-outline" tekst="Zgłoś problem" onPress={() => idz({ rodzaj: 'problem' })} ostatni />
       </Grupa>
 
       <Grupa>
@@ -187,7 +188,7 @@ function Wiersz({
   wylaczony,
   lewo,
 }: {
-  ikona?: string;
+  ikona?: NazwaIkony;
   tekst: string;
   podpis?: string;
   wartosc?: string;
@@ -203,7 +204,7 @@ function Wiersz({
   const tresc = (
     <>
       {lewo}
-      {ikona ? <Text style={styles.wierszIkona}>{ikona}</Text> : null}
+      {ikona ? <Ikona nazwa={ikona} rozmiar={20} kolor={pomaranczowy ? C.pomarancz : C.text2} /> : null}
       <View style={srodek ? undefined : { flex: 1 }}>
         <Text style={[styles.wierszTxt, { color: kolor }, (czerwony || pomaranczowy) && { fontFamily: Fonts.semibold }]} numberOfLines={1}>
           {tekst}
@@ -219,7 +220,7 @@ function Wiersz({
           {wartosc}
         </Text>
       ) : null}
-      {onPress && !srodek ? <Text style={styles.strzalka}>›</Text> : null}
+      {onPress && !srodek ? <Ikona nazwa="chevron-forward" rozmiar={18} kolor={C.text3} /> : null}
     </>
   );
   const styl = [styles.wiersz, srodek && { justifyContent: 'center' as const }, !ostatni && styles.wierszKreska];
@@ -436,8 +437,8 @@ function Uzytkownik({ x, onZmiana, onTymczasowe }: { x: UzytkownikAdmin; onZmian
         <Wiersz tekst="Firma" wartosc={nazwaMarki(x.marka)} ostatni />
       </Grupa>
       <Grupa tytul="Hasło">
-        <Wiersz ikona="🔑" tekst="Nadaj hasło tymczasowe" pomaranczowy onPress={onTymczasowe} wylaczony={trwa} />
-        <Wiersz ikona="↺" tekst="Wymuś zmianę hasła" podpis={x.haslo_reset ? 'Już ustawione — czeka na nowe hasło' : undefined} onPress={wymus} wylaczony={trwa} ostatni />
+        <Wiersz ikona="key-outline" tekst="Nadaj hasło tymczasowe" pomaranczowy onPress={onTymczasowe} wylaczony={trwa} />
+        <Wiersz ikona="refresh" tekst="Wymuś zmianę hasła" podpis={x.haslo_reset ? 'Już ustawione — czeka na nowe hasło' : undefined} onPress={wymus} wylaczony={trwa} ostatni />
       </Grupa>
       <Grupa>
         <Wiersz tekst={x.aktywny ? 'Wyłącz konto' : 'Włącz konto'} czerwony={x.aktywny} srodek ostatni onPress={wlacz} wylaczony={trwa} />
@@ -641,10 +642,8 @@ const styles = StyleSheet.create({
   grupa: { backgroundColor: C.surface, borderRadius: Size.radius, overflow: 'hidden' },
   wiersz: { flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 52, paddingVertical: 8, paddingHorizontal: 14 },
   wierszKreska: { borderBottomWidth: 1, borderBottomColor: C.border },
-  wierszIkona: { fontSize: 16, width: 22, textAlign: 'center' },
   wierszTxt: { fontFamily: Fonts.regular, fontSize: 15, color: C.text },
   wierszWartosc: { fontFamily: Fonts.regular, fontSize: 13, color: C.text2, maxWidth: '55%' },
-  strzalka: { fontSize: 20, color: C.text3, marginTop: -2 },
   opisStrony: { fontFamily: Fonts.regular, fontSize: 13, color: C.text2, lineHeight: 19, paddingHorizontal: 4, marginBottom: 12 },
   stopka: { fontFamily: Fonts.regular, fontSize: 11, color: C.text3, textAlign: 'center', marginTop: 4 },
   tresc: { padding: 16 },

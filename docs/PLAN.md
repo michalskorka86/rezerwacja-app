@@ -292,3 +292,8 @@ Nowe tabele jako pliki `server/sql/NNN_*.sql` (wgrywane ręcznie w phpMyAdmin), 
   (katalog + index, kalendarz, logout, pdf_dzien, api, instruktor-api, sync-cron). UWAGA: NIE `<FilesMatch>` — działa też
   w podfolderach i zablokował aplikacja-api/api.php (błąd 403 w aplikacji). Działają dalej: aplikacja-api/, podglad.php (SILT Lista), process.php.
   Bez strony z linkiem do APK (decyzja Michała — bezpieczeństwo). Przywrócenie: usunąć ten blok.
+- 04.11: wygląd (uzgodnione z Michałem): ikony Ionicons (`@expo/vector-icons`, bez nowego APK — odcisk sprawdzony) zamiast emoji
+  w menu, pasku, Ustawieniach, szczegółach i formularzu (`src/components/ui/Ikona.tsx`); szczegóły: szybkie akcje Zadzwoń · SMS ·
+  E-mail · Udostępnij, statusy w jednej ramce, Edytuj/Kopiuj/Usuń z ikonami; formularz na cały ekran („✕ Anuluj”, „Zapisz” stale
+  na dole, grupy, Uwagi/Instrukcje rozwijane); logowanie z logami SILT i Arsenał. BEZ zmian (decyzja Michała): daty, karty
+  w kalendarzu (liczba osób i godzina od razu widoczne), puste dni, widok miesiąca.

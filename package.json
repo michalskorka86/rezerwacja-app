@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "dependencies": {
     "@expo-google-fonts/dm-sans": "^0.4.2",
+    "@expo/vector-icons": "^15.0.2",
     "eslint-config-expo": "~57.0.2",
     "expo": "~57.0.26",
     "expo-background-task": "~57.0.21",

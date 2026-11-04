@@ -2,6 +2,7 @@ import { useRef } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { C, Fonts, Size } from '@/constants/theme';
+import { Ikona } from '@/components/ui/Ikona';
 import { FILTRY } from '@/logika/kalendarz';
 import type { Filtr } from '@/logika/typy';
 
@@ -66,7 +67,7 @@ export function GornyPasek({
           accessibilityLabel="Szukaj"
           hitSlop={4}
           style={({ pressed }) => [styles.ikona, szukanieOtwarte && { backgroundColor: C.text, borderColor: C.text }, pressed && styles.wcisniety]}>
-          <Text style={styles.ikonaTxt}>🔍</Text>
+          <Ikona nazwa="search" rozmiar={20} kolor={szukanieOtwarte ? '#fff' : C.text} />
         </Pressable>
       </View>
 
@@ -120,7 +121,7 @@ export function PrzyciskMenu({ ile, onPress }: { ile: number; onPress: () => voi
       hitSlop={4}
       accessibilityLabel={ile > 0 ? `Menu, zadania do zrobienia: ${ile}` : 'Menu'}
       style={({ pressed }) => [styles.ikona, pressed && styles.wcisniety]}>
-      <Text style={styles.menuTxt}>☰</Text>
+      <Ikona nazwa="menu" rozmiar={24} />
       {ile > 0 ? <Licznik ile={ile} /> : null}
     </Pressable>
   );
@@ -155,8 +156,6 @@ const styles = StyleSheet.create({
   },
   licznikTxt: { color: '#fff', fontFamily: Fonts.bold, fontSize: 11 },
   ikona: { width: 40, height: 40, borderRadius: Size.rs, backgroundColor: C.bg, borderWidth: 1.5, borderColor: C.border, alignItems: 'center', justifyContent: 'center' },
-  ikonaTxt: { fontSize: 16 },
-  menuTxt: { fontSize: 19, color: C.text, marginTop: -1 },
   r2: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   zakladki: { flex: 1, flexDirection: 'row', gap: 4, backgroundColor: C.bg, borderRadius: Size.rs, padding: 3 },
   zakladka: { flex: 1, paddingVertical: 7, borderRadius: 7, alignItems: 'center' },

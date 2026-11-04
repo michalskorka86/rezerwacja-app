@@ -83,7 +83,7 @@ export function Arkusz({
    * Cały ekran zamiast arkusza od dołu (Wynajem, Zadania): wsuwa się z prawej, nagłówek „☰ · tytuł · ← Wstecz”.
    * `lewo` = przycisk ☰ (menu z boku).
    */
-  pelnyEkran?: { lewo: ReactNode; tlo?: string };
+  pelnyEkran?: { lewo: ReactNode; tlo?: string; /** zamiast „← Wstecz” (np. nic w formularzu — tam „✕ Anuluj” po lewej) */ prawo?: ReactNode };
   /** warstwa nad treścią, w tym samym oknie (menu z boku otwarte z pełnego ekranu); gdy jest — Wstecz woła onZamknij */
   nakladka?: ReactNode;
 }) {
@@ -165,7 +165,7 @@ export function Arkusz({
               <Text style={styles.tytul} numberOfLines={1}>
                 {tytulPodstrony ?? tytul}
               </Text>
-              <Zamknij tekst="← Wstecz" onPress={() => (wstecz.current ? wstecz.current() : onZamknij())} />
+              {'prawo' in pelnyEkran ? pelnyEkran.prawo : <Zamknij tekst="← Wstecz" onPress={() => (wstecz.current ? wstecz.current() : onZamknij())} />}
             </View>
           ) : bezNaglowka ? null : (
             <View style={styles.hdr}>
