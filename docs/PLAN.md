@@ -297,3 +297,6 @@ Nowe tabele jako pliki `server/sql/NNN_*.sql` (wgrywane ręcznie w phpMyAdmin), 
   E-mail · Udostępnij, statusy w jednej ramce, Edytuj/Kopiuj/Usuń z ikonami; formularz na cały ekran („✕ Anuluj”, „Zapisz” stale
   na dole, grupy, Uwagi/Instrukcje rozwijane); logowanie z logami SILT i Arsenał. BEZ zmian (decyzja Michała): daty, karty
   w kalendarzu (liczba osób i godzina od razu widoczne), puste dni, widok miesiąca.
+- 04.11: umowa najmu sprzętu (tylko wynajmy SILT — Arsenał po podaniu danych firmy): Wynajem → „📝 Umowa” → dane najemcy
+  (nic obowiązkowego, puste = kropki) → podpisy palcem / rysikiem (`PolePodpisu`, bez nowych modułów) → PDF A4 (expo-print)
+  do udostępnienia lub druk. Tekst 1:1 ze wzoru papierowego (`src/logika/umowa.ts`). Umowa NIE trafia na serwer (RODO).

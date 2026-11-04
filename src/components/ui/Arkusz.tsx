@@ -23,7 +23,13 @@ import { ustawEkran } from '@/stan/zglos';
 
 import { WarstwaKomunikatow } from './Komunikaty';
 
-type ArkuszApi = { naGore: () => void; ustawWstecz: (f: (() => void) | null) => void; ustawTytul: (t: string | null) => void };
+type ArkuszApi = {
+  naGore: () => void;
+  ustawWstecz: (f: (() => void) | null) => void;
+  ustawTytul: (t: string | null) => void;
+  /** false = treść się nie przewija (np. podczas składania podpisu palcem) */
+  ustawPrzewijanie: (tak: boolean) => void;
+};
 const ArkuszKontekst = createContext<ArkuszApi | null>(null);
 
 /**
@@ -31,6 +37,12 @@ const ArkuszKontekst = createContext<ArkuszApi | null>(null);
  * a przycisk Wstecz w telefonie (i „← Wstecz” na pełnym ekranie) woła `wstecz` (np. wróć do listy) zamiast zamykać całość.
  * `tytul` — na pełnym ekranie zastępuje tytuł w nagłówku (np. „👥 Użytkownicy” w Ustawieniach).
  */
+/** Wyłącza przewijanie arkusza na czas rysowania podpisu (inaczej ruch palca przewijałby ekran). */
+export function usePrzewijanieArkusza() {
+  const api = useContext(ArkuszKontekst);
+  return (tak: boolean) => api?.ustawPrzewijanie(tak);
+}
+
 export function usePodstronaArkusza(wstecz: () => void, tytul?: string) {
   const api = useContext(ArkuszKontekst);
   useEffect(() => {
@@ -97,12 +109,14 @@ export function Arkusz({
   const znacznik = useRef<View>(null);
   const wstecz = useRef<(() => void) | null>(null);
   const [tytulPodstrony, setTytulPodstrony] = useState<string | null>(null);
+  const [przewijanie_, setPrzewijanie] = useState(true);
   const [api] = useState<ArkuszApi>(() => ({
     naGore: () => przewijanie.current?.scrollTo({ y: 0, animated: false }),
     ustawWstecz: (f) => {
       wstecz.current = f;
     },
     ustawTytul: setTytulPodstrony,
+    ustawPrzewijanie: setPrzewijanie,
   }));
 
   useEffect(() => {
@@ -182,6 +196,7 @@ export function Arkusz({
           <ScrollView
             ref={przewijanie}
             style={pelnyEkran ? styles.flex : styles.scroll}
+            scrollEnabled={przewijanie_}
             contentContainerStyle={bezPaddingu ? { paddingBottom: 40 } : styles.body}
             keyboardShouldPersistTaps="handled">
             <View ref={znacznik} collapsable={false} />

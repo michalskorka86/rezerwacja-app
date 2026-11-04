@@ -30,13 +30,14 @@ import { zglos } from '@/stan/zglos';
 
 import { WyborDaty } from '../formularz/Wybory';
 import { usePodstronaArkusza } from '../ui/Arkusz';
+import { UmowaNajmu } from './UmowaNajmu';
 import { useKomunikaty } from '../ui/Komunikaty';
 import { PoleLiczby } from '../ui/Numpad';
 import { Etykieta, Pole, Sekcja } from '../ui/Pola';
 import { Przelacznik } from '../ui/Przelacznik';
 import { PrzyciskGlowny } from '../ui/Przyciski';
 
-type Widok = { rodzaj: 'lista' } | { rodzaj: 'nowy' } | { rodzaj: 'edycja'; w: Wynajem };
+type Widok = { rodzaj: 'lista' } | { rodzaj: 'nowy' } | { rodzaj: 'edycja'; w: Wynajem } | { rodzaj: 'umowa'; w: Wynajem };
 
 /**
  * Wynajem sprzętu (arkusz sh-wynajem z PWA): lista z filtrami, dodawanie, edycja, „✓ Zwrócono”, usuwanie, 📤 obrazek.
@@ -137,6 +138,10 @@ export function WynajemSprzetu() {
 
   if (!uzytkownik) return null;
 
+  if (widok.rodzaj === 'umowa') {
+    return <UmowaNajmu w={widok.w} onWroc={() => setWidok({ rodzaj: 'lista' })} />;
+  }
+
   if (widok.rodzaj !== 'lista') {
     return (
       <FormularzWynajmu
@@ -220,6 +225,7 @@ export function WynajemSprzetu() {
             <View style={styles.akcje}>
               {zmiana && !w.zwrocono ? <Maly tekst="✓ Zwrócono" tlo="#e8f5e9" kolor={C.green} ramka="#a5d6a7" onPress={() => zwroc(w)} wylaczony={trwa === w.id} /> : null}
               {zmiana ? <Maly tekst="✏️ Edytuj" tlo="#fff3e0" kolor={C.pomarancz} ramka="#ffcc80" onPress={() => setWidok({ rodzaj: 'edycja', w })} /> : null}
+              {moze && w.marka === 'silt' ? <Maly tekst="📝 Umowa" tlo="#EDF7F0" kolor={C.green} ramka="#a5d6a7" onPress={() => setWidok({ rodzaj: 'umowa', w })} /> : null}
               <Maly tekst="📤" tlo="#e3f2fd" kolor="#1565c0" ramka="#90caf9" onPress={() => setDoObrazka(w)} wylaczony={!!doObrazka} opis="Udostępnij" />
               {zmiana ? <Maly tekst="🗑" tlo={C.redL} kolor={C.red} ramka="#f5c0bb" onPress={() => usun(w)} wylaczony={trwa === w.id} opis="Usuń" /> : null}
             </View>
