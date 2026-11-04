@@ -282,3 +282,6 @@ Nowe tabele jako pliki `server/sql/NNN_*.sql` (wgrywane ręcznie w phpMyAdmin), 
 - 26.10: w szczegółach obok „📧 Wyślij potwierdzenie” kafelek „💬 Wyślij potwierdzenie SMS” (prośba Michała) — otwiera
   aplikację SMS w telefonie z numerem klienta i stałą treścią (src/logika/sms.ts), bez SMSAPI.
 - 26.10: SMS potwierdzenia dla Arsenału: link do mapy pola (Rembertów / Wołomin) i podpis „Paweł Arsenał Paintball”.
+- 04.11: nowy górny pasek (wariant „C”, wybrany przez Michała): ☰ menu z boku (licznik zadań), nazwa miesiąca, filtr, 🔍;
+  Tydzień/Miesiąc/Dzień + „Dziś”; odświeżanie pociągnięciem listy w dół (bez 🔄). Wynajem i Zadania na cały ekran
+  („← Wstecz” albo ☰ → Kalendarz). W menu: Rozpiski (Arsenał), Ustawienia, Zmień hasło, Wyloguj. Makiety: artefakt „Górne menu — propozycje”.

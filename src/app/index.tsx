@@ -4,8 +4,9 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { PasekNowejWersji } from '@/components/Aktualizacje';
 import { FormularzRezerwacji } from '@/components/formularz/FormularzRezerwacji';
-import { GornyPasek, type Widok } from '@/components/kalendarz/GornyPasek';
+import { GornyPasek, PrzyciskMenu, type Widok } from '@/components/kalendarz/GornyPasek';
 import { Harmonogram, type HarmonogramRef } from '@/components/kalendarz/Harmonogram';
+import { MenuBoczne, WarstwaMenu, type PozycjaMenu } from '@/components/kalendarz/MenuBoczne';
 import { Legenda, PasekDni } from '@/components/kalendarz/PasekDni';
 import { SzczegolyRezerwacji } from '@/components/kalendarz/SzczegolyRezerwacji';
 import { WidokDnia } from '@/components/kalendarz/WidokDnia';
@@ -18,7 +19,7 @@ import { Rozpiski } from '@/components/Rozpiski';
 import { Ustawienia } from '@/components/Ustawienia';
 import { ZmianaHasla } from '@/components/ZmianaHasla';
 import { C, cien, Fonts, Size } from '@/constants/theme';
-import { dzisStr, miesiac } from '@/logika/daty';
+import { dzisStr, miesiac, MIESIACE, zData } from '@/logika/daty';
 import type { TrybFormularza } from '@/logika/formularz';
 import { dniHarmonogramu, FILTRY, filtruj } from '@/logika/kalendarz';
 import type { Filtr, Rezerwacja } from '@/logika/typy';
@@ -45,6 +46,9 @@ export default function Kalendarz() {
   const [menuFiltra, setMenuFiltra] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const [wybrana, setWybrana] = useState<Rezerwacja | null>(null);
   const [okno, setOkno] = useState<Okno>(null);
+  const [menu, setMenu] = useState(false);
+  const [ciagnie, setCiagnie] = useState(false);
+  const [widocznyDzien, setWidocznyDzien] = useState<string | null>(null);
   const [formularz, setFormularz] = useState<{ tryb: TrybFormularza; nr: number } | null>(null);
   const otworzFormularz = (tryb: TrybFormularza) => setFormularz((f) => ({ tryb, nr: (f?.nr ?? 0) + 1 }));
 
@@ -138,9 +142,12 @@ export default function Kalendarz() {
     if (!harmonogram.current?.przewinDo(dzis)) toast('Brak rezerwacji na dziś');
   };
 
+  // pociągnięcie listy w dół (zamiast przycisku 🔄)
   const naOdswiez = async () => {
+    setCiagnie(true);
     const ok = await dane.odswiez(true);
-    toast(ok ? '✅ Odświeżono' : '⚠️ ' + (bladOdswiezania ?? 'Nie udało się odświeżyć'));
+    setCiagnie(false);
+    if (!ok) toast('⚠️ Nie udało się odświeżyć. Sprawdź internet i spróbuj za chwilę.');
   };
 
   const naWidok = (w: Widok) => {
@@ -152,6 +159,12 @@ export default function Kalendarz() {
 
   const naKonto = () =>
     zapytaj({ tytul: 'Wylogować się?', tekst: 'Dane rezerwacji zostaną usunięte z tego telefonu.', ok: 'Wyloguj', niebezpieczne: true, onOk: () => dane.wyloguj() });
+
+  const wybierzZMenu = (p: PozycjaMenu) => {
+    setMenu(false);
+    if (p === 'wyloguj') return naKonto();
+    setOkno(p === 'kalendarz' ? null : p);
+  };
 
   const wybierzFiltr = (f: Filtr) => {
     setMenuFiltra(null);
@@ -173,21 +186,33 @@ export default function Kalendarz() {
   }
 
   const offline = bladOdswiezania && pobrano;
+  const dzienTytulu = zData(widok === 'miesiac' ? miesiacWidoku : (widocznyDzien ?? dzis));
+  const tytulMiesiaca = `${MIESIACE[dzienTytulu.getMonth()]} ${dzienTytulu.getFullYear()}`;
+  const stronaMenu = okno === 'wynajem' || okno === 'zadania' ? okno : 'kalendarz';
+  const menuProps = {
+    aktywna: stronaMenu,
+    logo: ustawienia.logo,
+    imie: uzytkownik.imie,
+    opis: `${uzytkownik.marka === 'arsenal' ? 'Arsenał' : 'SILT'} · ${uzytkownik.rola_nazwa === 'instruktor' ? 'instruktor' : 'admin'}`,
+    ileZadan: licznik.zadania,
+    arsenal: uzytkownik.marka === 'arsenal',
+    onWybierz: wybierzZMenu,
+    onZamknij: () => setMenu(false),
+  } as const;
+  const przyciskMenu = <PrzyciskMenu ile={licznik.zadania} onPress={() => setMenu(true)} />;
   const czasDanych = pobrano ? new Date(pobrano).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' }) : '';
 
   return (
     <SafeAreaView style={styles.ekran} edges={['top', 'left', 'right']}>
       <GornyPasek
-        logo={ustawienia.logo}
-        imie={uzytkownik.imie}
-        arsenal={uzytkownik.marka === 'arsenal'}
+        tytul={tytulMiesiaca}
         filtr={filtr}
         ileNowych={licznik.nowe}
         ileZadan={licznik.zadania}
         widok={widok}
         szukanieOtwarte={szukanie}
         zapytanie={zapytanie}
-        odswiezam={odswiezam}
+        onMenu={() => setMenu(true)}
         onFiltr={setMenuFiltra}
         onSzukaj={() => {
           setSzukanie((s) => !s);
@@ -195,11 +220,6 @@ export default function Kalendarz() {
         }}
         onZapytanie={setZapytanie}
         onDzisiaj={naDzisiaj}
-        onOdswiez={naOdswiez}
-        onRozpiski={() => setOkno('rozpiski')}
-        onKonto={naKonto}
-        onWynajem={() => setOkno('wynajem')}
-        onZadania={() => setOkno('zadania')}
         onWidok={naWidok}
       />
 
@@ -236,6 +256,9 @@ export default function Kalendarz() {
           dzis={dzis}
           nazwyDodatkow={slowniki?.nazwy_dodatkow ?? {}}
           onRezerwacja={naRezerwacje}
+          onOdswiez={naOdswiez}
+          odswiezam={ciagnie}
+          onWidocznyDzien={setWidocznyDzien}
           pustyTekst={filtr === 'niedoszle' && niedoszle === null ? 'Ładowanie...' : szukanie && zapytanie ? 'Nic nie znaleziono' : 'Brak rezerwacji'}
           naglowek={
             <>
@@ -273,14 +296,6 @@ export default function Kalendarz() {
                 </Text>
               </Pressable>
             ))}
-            <Pressable
-              onPress={() => {
-                setMenuFiltra(null);
-                setOkno('ustawienia');
-              }}
-              style={({ pressed }) => [styles.opcja, styles.opcjaUst, pressed && { backgroundColor: C.bg }]}>
-              <Text style={[styles.opcjaTxt, { color: C.text2 }]}>⚙️ Ustawienia</Text>
-            </Pressable>
           </View>
         ) : null}
       </Modal>
@@ -331,12 +346,27 @@ export default function Kalendarz() {
         />
       ) : null}
 
-      <Arkusz widoczny={okno === 'wynajem'} onZamknij={() => setOkno(null)} tytul="📦 Wynajem sprzętu" nazwa="wynajem" wysokosc={0.98}>
+      {/* Wynajem i Zadania — na cały ekran; powrót: „← Wstecz”, Wstecz w telefonie albo ☰ → Kalendarz */}
+      <Arkusz
+        widoczny={okno === 'wynajem'}
+        onZamknij={() => (menu ? setMenu(false) : setOkno(null))}
+        tytul="📦 Wynajem sprzętu"
+        nazwa="wynajem"
+        pelnyEkran={{ lewo: przyciskMenu }}
+        nakladka={menu && okno === 'wynajem' ? <WarstwaMenu otwarte {...menuProps} /> : null}>
         <WynajemSprzetu />
       </Arkusz>
-      <Arkusz widoczny={okno === 'zadania'} onZamknij={() => setOkno(null)} tytul="📋 Zadania" nazwa="zadania" wysokosc={0.96} bezPaddingu>
+      <Arkusz
+        widoczny={okno === 'zadania'}
+        onZamknij={() => (menu ? setMenu(false) : setOkno(null))}
+        tytul="📋 Zadania"
+        nazwa="zadania"
+        bezPaddingu
+        pelnyEkran={{ lewo: przyciskMenu }}
+        nakladka={menu && okno === 'zadania' ? <WarstwaMenu otwarte {...menuProps} /> : null}>
         <Zadania />
       </Arkusz>
+      <MenuBoczne otwarte={menu && stronaMenu === 'kalendarz'} {...menuProps} />
       <Arkusz widoczny={okno === 'ustawienia'} onZamknij={() => setOkno(null)} tytul="⚙️ Ustawienia" nazwa="ustawienia" wysokosc={0.98} bezPaddingu>
         <Ustawienia />
       </Arkusz>
@@ -370,6 +400,5 @@ const styles = StyleSheet.create({
   fabTxt: { color: '#fff', fontFamily: Fonts.semibold, fontSize: 14 },
   menu: { position: 'absolute', minWidth: 190, backgroundColor: C.surface, borderWidth: 1.5, borderColor: C.border, borderRadius: 12, overflow: 'hidden', ...cien(2) },
   opcja: { paddingVertical: 13, paddingHorizontal: 16, borderBottomWidth: 1, borderBottomColor: C.border },
-  opcjaUst: { borderBottomWidth: 0, borderTopWidth: 1, borderTopColor: C.border, marginTop: 4 },
   opcjaTxt: { fontFamily: Fonts.regular, fontSize: 13, color: C.text },
 });

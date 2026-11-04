@@ -1,5 +1,5 @@
-import { forwardRef, useCallback, useImperativeHandle, useRef } from 'react';
-import { FlatList, StyleSheet, Text, View, type ListRenderItem } from 'react-native';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { FlatList, RefreshControl, StyleSheet, Text, View, type ListRenderItem, type ViewToken } from 'react-native';
 
 import { C, cien, Fonts } from '@/constants/theme';
 import { DNI_KROTKO, MIESIACE_KROTKO, zData } from '@/logika/daty';
@@ -26,8 +26,22 @@ export const Harmonogram = forwardRef<HarmonogramRef, {
   onRezerwacja: (r: Rezerwacja) => void;
   naglowek?: React.ReactElement | null;
   pustyTekst?: string;
-}>(function Harmonogram({ dni, dzis, nazwyDodatkow, onRezerwacja, naglowek, pustyTekst }, ref) {
+  /** pociągnięcie listy w dół = odśwież (zamiast przycisku 🔄) */
+  onOdswiez?: () => void;
+  odswiezam?: boolean;
+  /** pierwszy widoczny dzień (do nazwy miesiąca w górnym pasku) */
+  onWidocznyDzien?: (ds: string) => void;
+}>(function Harmonogram({ dni, dzis, nazwyDodatkow, onRezerwacja, naglowek, pustyTekst, onOdswiez, odswiezam, onWidocznyDzien }, ref) {
   const lista = useRef<FlatList<DzienHarmonogramu>>(null);
+  // FlatList wymaga stałej funkcji onViewableItemsChanged — aktualny callback trzymamy w ref
+  const widocznyCb = useRef(onWidocznyDzien);
+  useEffect(() => {
+    widocznyCb.current = onWidocznyDzien;
+  }, [onWidocznyDzien]);
+  const [naWidoczne] = useState(() => ({ viewableItems }: { viewableItems: ViewToken<DzienHarmonogramu>[] }) => {
+    const pierwszy = viewableItems.find((v) => v.isViewable && v.item);
+    if (pierwszy?.item) widocznyCb.current?.(pierwszy.item.data);
+  });
   const reczne = useRef(false);
   const proby = useRef(0);
 
@@ -63,6 +77,9 @@ export const Harmonogram = forwardRef<HarmonogramRef, {
       ListEmptyComponent={<Text style={styles.pusto}>{pustyTekst ?? 'Brak rezerwacji'}</Text>}
       contentContainerStyle={styles.lista}
       initialNumToRender={20}
+      onViewableItemsChanged={naWidoczne}
+      viewabilityConfig={WIDOCZNOSC}
+      refreshControl={onOdswiez ? <RefreshControl refreshing={!!odswiezam} onRefresh={onOdswiez} colors={[C.green]} tintColor={C.green} /> : undefined}
       windowSize={11}
       onScrollBeginDrag={() => {
         reczne.current = true;
@@ -76,6 +93,8 @@ export const Harmonogram = forwardRef<HarmonogramRef, {
     />
   );
 });
+
+const WIDOCZNOSC = { itemVisiblePercentThreshold: 30 };
 
 const Przerwa = () => <View style={styles.przerwa} />;
 

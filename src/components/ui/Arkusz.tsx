@@ -56,6 +56,8 @@ export function Arkusz({
   wysokosc = 0.92,
   stopka,
   bezNaglowka,
+  pelnyEkran,
+  nakladka,
 }: {
   widoczny: boolean;
   onZamknij: () => void;
@@ -71,8 +73,15 @@ export function Arkusz({
   /** stały pasek na dole (np. przycisk Zapisz) */
   stopka?: ReactNode;
   bezNaglowka?: boolean;
+  /**
+   * Cały ekran zamiast arkusza od dołu (Wynajem, Zadania): wsuwa się z prawej, nagłówek „☰ · tytuł · ← Wstecz”.
+   * `lewo` = przycisk ☰ (menu z boku).
+   */
+  pelnyEkran?: { lewo: ReactNode };
+  /** warstwa nad treścią, w tym samym oknie (menu z boku otwarte z pełnego ekranu); gdy jest — Wstecz woła onZamknij */
+  nakladka?: ReactNode;
 }) {
-  const { height } = useWindowDimensions();
+  const { height, width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const [pokaz, setPokaz] = useState(widoczny);
   const [anim] = useState(() => new Animated.Value(0));
@@ -124,25 +133,33 @@ export function Arkusz({
   }, [pokaz]);
 
   if (!pokaz) return null;
-  const przesun = anim.interpolate({ inputRange: [0, 1], outputRange: [height, 0] });
+  const przesun = anim.interpolate({ inputRange: [0, 1], outputRange: [pelnyEkran ? width : height, 0] });
 
   return (
-    <Modal visible transparent animationType="none" onRequestClose={() => (wstecz.current ? wstecz.current() : onZamknij())} statusBarTranslucent navigationBarTranslucent>
+    <Modal visible transparent animationType="none" onRequestClose={() => (!nakladka && wstecz.current ? wstecz.current() : onZamknij())} statusBarTranslucent navigationBarTranslucent>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
-        <Animated.View style={[StyleSheet.absoluteFill, styles.tlo, { opacity: anim }]}>
-          <Pressable style={styles.flex} onPress={onZamknij} accessibilityLabel="Zamknij" />
-        </Animated.View>
+        {pelnyEkran ? null : (
+          <Animated.View style={[StyleSheet.absoluteFill, styles.tlo, { opacity: anim }]}>
+            <Pressable style={styles.flex} onPress={onZamknij} accessibilityLabel="Zamknij" />
+          </Animated.View>
+        )}
         <Animated.View
           style={[
             styles.arkusz,
-            {
-              bottom: klawiatura,
-              maxHeight: Math.max(height * wysokosc - klawiatura, 200),
-              transform: [{ translateY: przesun }],
-              paddingBottom: stopka || klawiatura ? 0 : insets.bottom,
-            },
+            pelnyEkran
+              ? { top: 0, bottom: klawiatura, borderRadius: 0, paddingTop: insets.top, transform: [{ translateX: przesun }] }
+              : { bottom: klawiatura, maxHeight: Math.max(height * wysokosc - klawiatura, 200), transform: [{ translateY: przesun }] },
+            { paddingBottom: stopka || klawiatura ? 0 : insets.bottom },
           ]}>
-          {bezNaglowka ? null : (
+          {pelnyEkran ? (
+            <View style={[styles.hdr, styles.hdrPelny]}>
+              {pelnyEkran.lewo}
+              <Text style={styles.tytul} numberOfLines={1}>
+                {tytul}
+              </Text>
+              <Zamknij tekst="← Wstecz" onPress={onZamknij} />
+            </View>
+          ) : bezNaglowka ? null : (
             <View style={styles.hdr}>
               {typeof tytul === 'string' || tytul === undefined ? (
                 <Text style={styles.tytul} numberOfLines={1}>
@@ -156,7 +173,7 @@ export function Arkusz({
           )}
           <ScrollView
             ref={przewijanie}
-            style={styles.scroll}
+            style={pelnyEkran ? styles.flex : styles.scroll}
             contentContainerStyle={bezPaddingu ? { paddingBottom: 40 } : styles.body}
             keyboardShouldPersistTaps="handled">
             <View ref={znacznik} collapsable={false} />
@@ -164,6 +181,7 @@ export function Arkusz({
           </ScrollView>
           {stopka ? <View style={[styles.stopka, { paddingBottom: 10 + (klawiatura ? 0 : insets.bottom) }]}>{stopka}</View> : null}
         </Animated.View>
+        {nakladka}
         <WarstwaKomunikatow />
       </KeyboardAvoidingView>
     </Modal>
@@ -209,6 +227,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: C.border,
   },
+  hdrPelny: { paddingTop: 10, paddingHorizontal: 12, gap: 8 },
   tytul: { flex: 1, fontFamily: Fonts.semibold, fontSize: 16, letterSpacing: -0.3, color: C.text },
   scroll: { flexGrow: 0 },
   body: { paddingTop: 14, paddingHorizontal: 16, paddingBottom: 80 },
