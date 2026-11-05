@@ -1,12 +1,13 @@
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { C, Fonts, Size } from '@/constants/theme';
 import { dzisStr } from '@/logika/daty';
 import type { Wynajem } from '@/logika/typy';
 import { dataPl, domyslneUmowy, htmlUmowy, type DaneUmowy, type Podpis } from '@/logika/umowa';
+import { folderUmow, nazwaFolderu, nazwaPlikuUmowy, wybierzFolderUmow, zapisDostepny, zapiszUmoweWTelefonie } from '@/stan/zapisUmowy';
 import { zglos } from '@/stan/zglos';
 
 import { WyborDaty } from '../formularz/Wybory';
@@ -26,7 +27,11 @@ type PoleDaty = 'dataUmowy' | 'od' | 'do' | 'dataPlatnosci' | 'dataZwrotu';
  * Wygląd uzgodniony z Michałem 04.11 (tablica „Umowa najmu sprzętu — propozycja”).
  */
 export function UmowaNajmu({ w, onWroc }: { w: Wynajem; onWroc: () => void }) {
-  const { toast } = useKomunikaty();
+  const { toast, zapytaj } = useKomunikaty();
+  const [folder, setFolder] = useState<string | null>(null);
+  useEffect(() => {
+    folderUmow().then(setFolder).catch(() => {});
+  }, []);
   const [krok, setKrok] = useState<'dane' | 'podpisy'>('dane');
   const [d, setD] = useState<DaneUmowy>(() => domyslneUmowy(w, dzisStr()));
   const [data, setData] = useState<PoleDaty | null>(null);
@@ -40,6 +45,24 @@ export function UmowaNajmu({ w, onWroc }: { w: Wynajem; onWroc: () => void }) {
   const zmien = (z: Partial<DaneUmowy>) => setD((p) => ({ ...p, ...z }));
   const html = () => htmlUmowy(d, { najemca: najemca ?? undefined, wynajmujacy: wynajmujacy ?? undefined });
 
+  /** Pierwsza umowa na tym telefonie: zapytaj o folder (telefon zapamięta). */
+  const upewnijSieOFolderze = async (): Promise<void> => {
+    if (!zapisDostepny || (await folderUmow())) return;
+    const tak = await new Promise<boolean>((ok) =>
+      zapytaj({
+        tytul: 'Gdzie zapisywać umowy?',
+        tekst: 'Wybierz folder w telefonie (np. Pobrane → nowy folder „Umowy”). Zrobisz to tylko raz — kolejne umowy zapiszą się tam same.',
+        ok: 'Wybierz folder',
+        onOk: () => ok(true),
+        onAnuluj: () => ok(false),
+      }),
+    );
+    if (tak) {
+      const f = await wybierzFolderUmow();
+      setFolder(f);
+    }
+  };
+
   const udostepnij = async () => {
     setTrwa('pdf');
     try {
@@ -47,7 +70,12 @@ export function UmowaNajmu({ w, onWroc }: { w: Wynajem; onWroc: () => void }) {
         await Print.printAsync({ html: html() });
         return;
       }
+      await upewnijSieOFolderze();
       const { uri } = await Print.printToFileAsync({ html: html() });
+      const zapisano = zapisDostepny ? await zapiszUmoweWTelefonie(uri, nazwaPlikuUmowy(d.imie, d.dataUmowy)) : null;
+      if (zapisano) toast(`✅ Umowa zapisana w telefonie (${zapisano})`);
+      else if (zapisDostepny) toast('⚠️ Nie zapisano w telefonie — wybierz folder ponownie przy następnej umowie');
+      setFolder(await folderUmow());
       await Sharing.shareAsync(uri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf', dialogTitle: 'Umowa najmu — ' + (d.imie || 'najemca') });
     } catch (e) {
       zglos(e, { dopisek: 'Umowa najmu (PDF)' });
@@ -82,7 +110,15 @@ export function UmowaNajmu({ w, onWroc }: { w: Wynajem; onWroc: () => void }) {
           <Ikona nazwa="print-outline" rozmiar={18} />
           <Text style={styles.drugiTxt}>{trwa === 'druk' ? 'Otwieram druk…' : 'Drukuj'}</Text>
         </Pressable>
-        <Text style={styles.maly}>PDF powstaje tylko w tym telefonie — wyślij go klientowi albo zapisz. Na serwer nic nie trafia.</Text>
+        {zapisDostepny ? (
+          <Text style={styles.maly}>
+            {folder ? `Umowy zapisują się same w folderze: ${nazwaFolderu(folder)}. ` : 'Przy pierwszej umowie wybierzesz folder, w którym umowy będą się same zapisywać. '}
+            <Text style={styles.link} onPress={async () => setFolder((await wybierzFolderUmow()) ?? folder)}>
+              {folder ? 'Zmień folder' : 'Wybierz teraz'}
+            </Text>
+          </Text>
+        ) : null}
+        <Text style={styles.maly}>Na serwer nic nie trafia — umowa jest tylko w tym telefonie i u klienta.</Text>
       </View>
     );
   }
@@ -174,6 +210,7 @@ const styles = StyleSheet.create({
   tresc: { padding: 14, gap: 14 },
   info: { fontFamily: Fonts.regular, fontSize: 13, color: C.green, backgroundColor: C.greenL, borderRadius: 12, padding: 12, lineHeight: 18 },
   opis: { fontFamily: Fonts.regular, fontSize: 13, color: C.text2, lineHeight: 18, paddingHorizontal: 4 },
+  link: { fontFamily: Fonts.semibold, color: C.green, textDecorationLine: 'underline' },
   maly: { fontFamily: Fonts.regular, fontSize: 12, color: C.text3, textAlign: 'center', lineHeight: 17 },
   grupaTytul: { fontFamily: Fonts.semibold, fontSize: 11, color: C.text2, letterSpacing: 0.6, paddingHorizontal: 4, paddingBottom: 6 },
   grupa: { backgroundColor: C.surface, borderRadius: Size.radius, paddingHorizontal: 14, paddingVertical: 8, gap: 10 },

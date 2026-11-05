@@ -12,6 +12,8 @@ type Pytanie = {
   /** czerwony przycisk przy usuwaniu / wylogowaniu */
   niebezpieczne?: boolean;
   onOk: () => void;
+  /** wywoływane przy Anuluj / dotknięciu tła / Wstecz */
+  onAnuluj?: () => void;
 };
 
 type Ctx = {
@@ -63,6 +65,10 @@ export function WarstwaKomunikatow() {
 export function KomunikatyProvider({ children }: { children: ReactNode }) {
   const [tekst, setTekst] = useState('');
   const [pytanie, setPytanie] = useState<Pytanie | null>(null);
+  const anuluj = () => {
+    pytanie?.onAnuluj?.();
+    setPytanie(null);
+  };
   const [blad, setBlad] = useState<string | null>(null);
   const [op] = useState(() => new Animated.Value(0));
   const zegar = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -95,14 +101,14 @@ export function KomunikatyProvider({ children }: { children: ReactNode }) {
         {children}
         {/* tworzone dopiero przy pytaniu — wtedy zawsze NAD otwartymi arkuszami */}
         {pytanie ? (
-          <Modal visible transparent animationType="fade" onRequestClose={() => setPytanie(null)} statusBarTranslucent>
-            <Pressable style={styles.tlo} onPress={() => setPytanie(null)}>
+          <Modal visible transparent animationType="fade" onRequestClose={anuluj} statusBarTranslucent>
+            <Pressable style={styles.tlo} onPress={anuluj}>
               <Pressable style={styles.okno} onPress={() => {}}>
                 <Text style={styles.tytul}>{pytanie?.tytul}</Text>
                 {pytanie?.tekst ? <Text style={styles.tekst}>{pytanie.tekst}</Text> : null}
                 <View style={styles.przyciski}>
                   <Pressable
-                    onPress={() => setPytanie(null)}
+                    onPress={anuluj}
                     style={({ pressed }) => [styles.btn, styles.anuluj, pressed && styles.wcisniety]}>
                     <Text style={[styles.btnTxt, { color: C.text }]}>Anuluj</Text>
                   </Pressable>

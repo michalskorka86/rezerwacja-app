@@ -300,3 +300,4 @@ Nowe tabele jako pliki `server/sql/NNN_*.sql` (wgrywane ręcznie w phpMyAdmin), 
 - 04.11: umowa najmu sprzętu (tylko wynajmy SILT — Arsenał po podaniu danych firmy): Wynajem → „📝 Umowa” → dane najemcy
   (nic obowiązkowego, puste = kropki) → podpisy palcem / rysikiem (`PolePodpisu`, bez nowych modułów) → PDF A4 (expo-print)
   do udostępnienia lub druk. Tekst 1:1 ze wzoru papierowego (`src/logika/umowa.ts`). Umowa NIE trafia na serwer (RODO).
+  05.11: Android — PDF zapisuje się sam w folderze wybranym raz (SAF, `src/stan/zapisUmowy.ts`, adres w SecureStore), potem menu udostępniania.
