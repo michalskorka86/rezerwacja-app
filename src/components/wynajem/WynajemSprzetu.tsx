@@ -147,10 +147,11 @@ export function WynajemSprzetu() {
       <FormularzWynajmu
         edycja={widok.rodzaj === 'edycja' ? widok.w : null}
         sprzetLista={sprzetLista}
+        zUmowa={(widok.rodzaj === 'edycja' ? widok.w.marka : uzytkownik.marka) === 'silt'}
         onWroc={() => setWidok({ rodzaj: 'lista' })}
-        onZapisano={(w, nowy) => {
+        onZapisano={(w, nowy, umowa) => {
           podmien(w);
-          setWidok({ rodzaj: 'lista' });
+          setWidok(umowa ? { rodzaj: 'umowa', w } : { rodzaj: 'lista' });
           toast(nowy ? '✅ Wynajem zapisany!' : '✅ Zapisano!');
         }}
       />
@@ -293,11 +294,14 @@ function FormularzWynajmu({
   sprzetLista,
   onWroc,
   onZapisano,
+  zUmowa,
 }: {
   edycja: Wynajem | null;
   sprzetLista: string[];
   onWroc: () => void;
-  onZapisano: (w: Wynajem, nowy: boolean) => void;
+  onZapisano: (w: Wynajem, nowy: boolean, umowa?: boolean) => void;
+  /** wynajem SILT — przycisk „Zapisz i przygotuj umowę” */
+  zUmowa?: boolean;
 }) {
   const { toast, zapytaj, pasekBledu } = useKomunikaty();
   const [poczatek] = useState<StanWynajmu>(() => (edycja ? wynajemDoEdycji(edycja) : nowyWynajem(dzisStr())));
@@ -315,14 +319,14 @@ function FormularzWynajmu({
   };
   usePodstronaArkusza(wroc);
 
-  const zapisz = async () => {
+  const zapisz = async (umowa = false) => {
     const b = bladWynajmu(s);
     if (b) return toast('❌ ' + b);
     setTrwa(true);
     try {
       const j = await klient<{ wynajem: Wynajem }>(edycja ? 'wynajem_edytuj' : 'wynajem_dodaj', { body: daneWynajmu(s, edycja?.id) });
       pasekBledu(null);
-      onZapisano(j.wynajem, !edycja);
+      onZapisano(j.wynajem, !edycja, umowa);
     } catch (e) {
       setPonow(true);
       pasekBledu('❌ ' + komunikatBledu(e) + ' Dane są zachowane — spróbuj ponownie.');
@@ -418,7 +422,12 @@ function FormularzWynajmu({
         <Pole value={s.uwagi} onChangeText={(t) => zmien({ uwagi: t })} placeholder="Dodatkowe informacje..." multiline />
       </Sekcja>
 
-      <PrzyciskGlowny tekst={edycja ? 'Zapisz zmiany' : 'Zapisz wynajem'} onPress={zapisz} trwa={trwa} ponow={ponow} style={{ backgroundColor: ponow ? undefined : C.green }} />
+      <PrzyciskGlowny tekst={edycja ? 'Zapisz zmiany' : 'Zapisz wynajem'} onPress={() => zapisz()} trwa={trwa} ponow={ponow} style={{ backgroundColor: ponow ? undefined : C.green }} />
+      {zUmowa ? (
+        <Pressable onPress={() => zapisz(true)} disabled={trwa} style={({ pressed }) => [styles.umowaBtn, (pressed || trwa) && { opacity: 0.7 }]} accessibilityRole="button">
+          <Text style={styles.umowaTxt}>📝 Zapisz i przygotuj umowę</Text>
+        </Pressable>
+      ) : null}
       <Pressable onPress={wroc} style={({ pressed }) => [styles.anuluj, pressed && { opacity: 0.7 }]}>
         <Text style={styles.anulujTxt}>Anuluj</Text>
       </Pressable>
@@ -484,6 +493,8 @@ const styles = StyleSheet.create({
   platnosc: { flex: 1, paddingVertical: 12, borderRadius: Size.rs, borderWidth: 1.5, borderColor: C.border, backgroundColor: C.bg, alignItems: 'center' },
   platnoscOn: { backgroundColor: C.text, borderColor: C.text },
   platnoscTxt: { fontFamily: Fonts.regular, fontSize: 14, color: C.text },
+  umowaBtn: { marginTop: 10, minHeight: 50, borderRadius: Size.rs, borderWidth: 1.5, borderColor: '#a5d6a7', backgroundColor: C.greenL, alignItems: 'center', justifyContent: 'center' },
+  umowaTxt: { fontFamily: Fonts.semibold, fontSize: 15, color: C.green },
   anuluj: { marginTop: 10, marginBottom: 10, minHeight: 48, borderRadius: Size.rs, borderWidth: 1.5, borderColor: C.border, backgroundColor: C.bg, alignItems: 'center', justifyContent: 'center' },
   anulujTxt: { fontFamily: Fonts.semibold, fontSize: 14, color: C.text },
   pozaEkranem: { position: 'absolute', left: -10000, top: 0 },
