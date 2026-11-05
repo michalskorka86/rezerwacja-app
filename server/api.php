@@ -67,6 +67,7 @@ $odczyt = [
         akcja_licznik($u);
     },
     'wynajmy' => function () { akcja_wynajmy(); },
+    'umowa' => function () { akcja_umowa(); },
     'uzytkownicy' => function () { akcja_uzytkownicy(); },
     'zadania' => function () { akcja_zadania(); },
     'uzytkownicy_admin' => function (array $u) { akcja_uzytkownicy_admin($u); },
@@ -84,6 +85,7 @@ $zapis = [
     'wynajem_edytuj' => 'akcja_wynajem_edytuj',
     'wynajem_zwroc' => 'akcja_wynajem_zwroc',
     'wynajem_usun' => 'akcja_wynajem_usun',
+    'umowa_zapisz' => 'akcja_umowa_zapisz',
     'zadanie_dodaj' => 'akcja_zadanie_dodaj',
     'zadanie_wykonane' => function (array $u, array $d) { akcja_zadanie_wykonane($d); },
     'zadanie_usun' => function (array $u, array $d) { akcja_zadanie_usun($d); },

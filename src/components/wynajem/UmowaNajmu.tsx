@@ -6,7 +6,9 @@ import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { C, Fonts, Size } from '@/constants/theme';
 import { dzisStr } from '@/logika/daty';
 import type { Wynajem } from '@/logika/typy';
-import { dataPl, domyslneUmowy, htmlUmowy, type DaneUmowy, type Podpis } from '@/logika/umowa';
+import { dataPl, domyslneUmowy, htmlUmowy, MODELE, rozdzielPozycje, type DaneUmowy, type Podpis, type PozycjaUmowy, type ZapisanaUmowa } from '@/logika/umowa';
+import { komunikatBledu } from '@/logika/klient';
+import { klient } from '@/stan/klient';
 import { folderUmow, nazwaFolderu, nazwaPlikuUmowy, wybierzFolderUmow, zapisDostepny, zapiszUmoweWTelefonie } from '@/stan/zapisUmowy';
 import { zglos } from '@/stan/zglos';
 
@@ -23,10 +25,11 @@ type PoleDaty = 'dataUmowy' | 'od' | 'do' | 'dataPlatnosci' | 'dataZwrotu';
 
 /**
  * Umowa najmu sprzętu (SILT): dane najemcy → podpisy palcem / rysikiem → PDF do udostępnienia lub druku.
- * Nic nie jest obowiązkowe (puste pola drukują się jako kropki). Umowa nie trafia na serwer.
- * Wygląd uzgodniony z Michałem 04.11 (tablica „Umowa najmu sprzętu — propozycja”).
+ * Nic nie jest obowiązkowe (puste pola drukują się jako kropki). Przy „Generuj” umowa zapisuje się na serwerze
+ * (widać ją potem przy wynajmie na każdym telefonie) i w wybranym folderze telefonu.
+ * Wygląd uzgodniony z Michałem 04–05.11 (tablica „Umowa najmu sprzętu — propozycja”).
  */
-export function UmowaNajmu({ w, onWroc }: { w: Wynajem; onWroc: () => void }) {
+export function UmowaNajmu({ w, onWroc, onZapisano }: { w: Wynajem; onWroc: () => void; onZapisano?: (czas: string) => void }) {
   const { toast, zapytaj } = useKomunikaty();
   const [folder, setFolder] = useState<string | null>(null);
   useEffect(() => {
@@ -69,6 +72,14 @@ export function UmowaNajmu({ w, onWroc }: { w: Wynajem; onWroc: () => void }) {
       if (Platform.OS === 'web') {
         await Print.printAsync({ html: html() });
         return;
+      }
+      // najpierw serwer — umowa ma być przy wynajmie, nawet gdy udostępnianie zostanie przerwane
+      try {
+        const dane: ZapisanaUmowa = { ...d, podpisy: { najemca: najemca ?? undefined, wynajmujacy: wynajmujacy ?? undefined } };
+        const j = await klient<{ utworzona: string }>('umowa_zapisz', { body: { wynajem_id: w.id, dane }, czasMs: 30000 });
+        onZapisano?.(j.utworzona);
+      } catch (e) {
+        toast('⚠️ Umowa nie zapisała się na serwerze: ' + komunikatBledu(e));
       }
       await upewnijSieOFolderze();
       const { uri } = await Print.printToFileAsync({ html: html() });
@@ -156,9 +167,22 @@ export function UmowaNajmu({ w, onWroc }: { w: Wynajem; onWroc: () => void }) {
         <WierszKwoty tekst="Wartość sprzętu (pkt 8)" wartosc={d.wartoscSprzetu} onChange={(t) => zmien({ wartoscSprzetu: t })} ostatni />
       </Grupa>
 
-      <Grupa tytul="Załącznik nr 1 — sprzęt">
-        <Pole value={d.sprzet} onChangeText={(t) => zmien({ sprzet: t })} placeholder="np. 4× maska, 4× marker" multiline />
-      </Grupa>
+      <View>
+        <Text style={styles.grupaTytul}>ZAŁĄCZNIK NR 1 — SPRZĘT (Z WYNAJMU)</Text>
+        <Text style={[styles.opis, { marginBottom: 8 }]}>Dotknij modelu. Kilka modeli tej samej rzeczy — „+ inny model”.</Text>
+        <View style={{ gap: 10 }}>
+          {d.pozycje.map((p, i) => (
+            <Pozycja
+              key={i}
+              p={p}
+              onZmiana={(z) => zmien({ pozycje: d.pozycje.map((x, j) => (j === i ? { ...x, ...z } : x)) })}
+              onRozdziel={() => zmien({ pozycje: rozdzielPozycje(d.pozycje, i) })}
+              onUsun={() => zmien({ pozycje: d.pozycje.filter((_, j) => j !== i) })}
+            />
+          ))}
+          {d.pozycje.length === 0 ? <Text style={styles.maly}>Brak sprzętu w wynajmie — w PDF będą puste wiersze do wypełnienia długopisem.</Text> : null}
+        </View>
+      </View>
 
       <PrzyciskGlowny tekst="Dalej: podpisy" onPress={() => setKrok('podpisy')} style={{ backgroundColor: C.green }} />
 
@@ -171,6 +195,57 @@ export function UmowaNajmu({ w, onWroc }: { w: Wynajem; onWroc: () => void }) {
         }}
         onZamknij={() => setData(null)}
       />
+    </View>
+  );
+}
+
+/** Pozycja załącznika: nazwa z wynajmu, ilość, model (przyciski z listy albo wpisany), uwagi. */
+function Pozycja({ p, onZmiana, onRozdziel, onUsun }: { p: PozycjaUmowy; onZmiana: (z: Partial<PozycjaUmowy>) => void; onRozdziel: () => void; onUsun: () => void }) {
+  const modele = MODELE[p.sprzet] ?? [];
+  const [inny, setInny] = useState(!!p.model && !modele.includes(p.model));
+  return (
+    <View style={styles.pozycja}>
+      <View style={styles.pozGora}>
+        <Text style={styles.pozNazwa}>{p.sprzet}</Text>
+        <View style={{ width: 84 }}>
+          <PoleLiczby value={p.ilosc} onChange={(t) => onZmiana({ ilosc: t })} placeholder="szt." tytul={'Ilość — ' + p.sprzet} />
+        </View>
+        <Pressable onPress={onUsun} hitSlop={8} accessibilityRole="button" accessibilityLabel={'Usuń z umowy: ' + p.sprzet} style={styles.pozUsun}>
+          <Ikona nazwa="close" rozmiar={18} kolor={C.text3} />
+        </Pressable>
+      </View>
+      {modele.length || inny ? (
+        <View style={styles.chipy}>
+          {modele.map((m) => (
+            <Pressable
+              key={m}
+              onPress={() => {
+                setInny(false);
+                onZmiana({ model: p.model === m ? '' : m });
+              }}
+              style={[styles.chip, p.model === m && styles.chipOn]}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: p.model === m }}>
+              <Text style={[styles.chipTxt, p.model === m && { color: '#fff' }]}>{m}</Text>
+            </Pressable>
+          ))}
+          <Pressable
+            onPress={() => {
+              setInny(true);
+              if (modele.includes(p.model)) onZmiana({ model: '' });
+            }}
+            style={[styles.chip, styles.chipInny, inny && styles.chipOn]}>
+            <Text style={[styles.chipTxt, inny && { color: '#fff' }]}>inny…</Text>
+          </Pressable>
+        </View>
+      ) : null}
+      {inny || !modele.length ? <Pole value={p.model} onChangeText={(t) => onZmiana({ model: t })} placeholder={modele.length ? 'Wpisz model' : 'Model (opcjonalnie)'} /> : null}
+      <Pole value={p.uwagi} onChangeText={(t) => onZmiana({ uwagi: t })} placeholder="Uwagi (np. nr seryjny, rysa na lufie)" />
+      {parseInt(p.ilosc, 10) > 1 ? (
+        <Pressable onPress={onRozdziel} style={({ pressed }) => [styles.rozdziel, pressed && { opacity: 0.6 }]} accessibilityRole="button">
+          <Text style={styles.link}>+ inny model tej pozycji</Text>
+        </Pressable>
+      ) : null}
     </View>
   );
 }
@@ -218,6 +293,16 @@ const styles = StyleSheet.create({
   wiersz: { flexDirection: 'row', alignItems: 'center', gap: 10, minHeight: 52, borderBottomWidth: 1, borderBottomColor: C.border },
   wierszTxt: { flex: 1, fontFamily: Fonts.regular, fontSize: 15, color: C.text },
   wartosc: { fontFamily: Fonts.semibold, fontSize: 14, color: C.text },
+  pozycja: { backgroundColor: C.surface, borderRadius: Size.radius, padding: 12, gap: 8 },
+  pozGora: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  pozNazwa: { flex: 1, fontFamily: Fonts.semibold, fontSize: 15, color: C.text },
+  pozUsun: { width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
+  chipy: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  chip: { borderRadius: 16, borderWidth: 1.5, borderColor: C.border, backgroundColor: C.surface, paddingVertical: 7, paddingHorizontal: 12 },
+  chipOn: { backgroundColor: C.text, borderColor: C.text },
+  chipInny: { borderStyle: 'dashed' },
+  chipTxt: { fontFamily: Fonts.medium, fontSize: 13, color: C.text },
+  rozdziel: { alignSelf: 'flex-start', paddingVertical: 4 },
   drugi: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 50, borderRadius: Size.rs, borderWidth: 1.5, borderColor: C.border, backgroundColor: C.surface },
   drugiTxt: { fontFamily: Fonts.semibold, fontSize: 15, color: C.text },
 });

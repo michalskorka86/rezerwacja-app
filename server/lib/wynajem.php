@@ -51,7 +51,13 @@ function akcja_wynajmy(): void
     if ($marka === 'silt') $w[] = "marka = 'silt'";
     if ($marka === 'arsenal') $w[] = "marka = 'arsenal'";
     $rows = baza()->query('SELECT * FROM wynajmy WHERE ' . implode(' AND ', $w) . ' ORDER BY data_wynajmu DESC, id DESC LIMIT 500')->fetchAll();
-    odpowiedz(['ok' => true, 'wynajmy' => array_map('wynajem_dla_aplikacji', $rows)]);
+    $umowy = czasy_umow();
+    $lista = array_map(function (array $r) use ($umowy) {
+        $x = wynajem_dla_aplikacji($r);
+        $x['umowa_czas'] = $umowy[$x['id']] ?? null;
+        return $x;
+    }, $rows);
+    odpowiedz(['ok' => true, 'wynajmy' => $lista]);
 }
 
 function wlasny_wynajem(array $u, int $id): array
@@ -139,5 +145,52 @@ function akcja_wynajem_usun(array $u, array $d): void
     $id = liczba_calk($d, 'id', 1, PHP_INT_MAX);
     wlasny_wynajem($u, $id);
     baza()->prepare('DELETE FROM wynajmy WHERE id = ?')->execute([$id]);
+    try {
+        baza()->prepare('DELETE FROM app_umowy WHERE wynajem_id = ?')->execute([$id]);   // dane osobowe z umowy też znikają
+    } catch (PDOException $e) {
+        // tabela app_umowy jeszcze niezaimportowana
+    }
     odpowiedz(['ok' => true]);
+}
+
+// ── Umowy najmu (tabela app_umowy, sql/003_umowy.sql) ──
+
+/** {wynajem_id: czas ostatniej umowy}. Bez tabeli (przed importem 003) — pusto, lista wynajmów działa dalej. */
+function czasy_umow(): array
+{
+    try {
+        $wynik = [];
+        foreach (baza()->query('SELECT wynajem_id, MAX(utworzona) AS czas FROM app_umowy GROUP BY wynajem_id')->fetchAll() as $r) {
+            $wynik[(int)$r['wynajem_id']] = $r['czas'];
+        }
+        return $wynik;
+    } catch (PDOException $e) {
+        return [];
+    }
+}
+
+/** GET umowa &wynajem_id= — ostatnia umowa tego wynajmu (dane + podpisy) albo null. */
+function akcja_umowa(): void
+{
+    $id = (int)($_GET['wynajem_id'] ?? 0);
+    if ($id < 1) throw new BladApi('zle_dane', 'Brak wynajmu');
+    $st = baza()->prepare('SELECT id, dane_json, utworzona FROM app_umowy WHERE wynajem_id = ? ORDER BY id DESC LIMIT 1');
+    $st->execute([$id]);
+    $r = $st->fetch();
+    odpowiedz(['ok' => true, 'umowa' => $r ? ['id' => (int)$r['id'], 'utworzona' => $r['utworzona'], 'dane' => json_decode($r['dane_json'], true)] : null]);
+}
+
+/** POST umowa_zapisz {wynajem_id, dane} — zapis podpisanej umowy (tylko wynajmy własnej marki, pełna rola). */
+function akcja_umowa_zapisz(array $u, array $d): void
+{
+    wymagaj_pelnej_roli($u);
+    $id = liczba_calk($d, 'wynajem_id', 1, PHP_INT_MAX);
+    wlasny_wynajem($u, $id);
+    $dane = $d['dane'] ?? null;
+    if (!is_array($dane)) throw new BladApi('zle_dane', 'Brak danych umowy');
+    $json = json_encode($dane, JSON_UNESCAPED_UNICODE);
+    if ($json === false || strlen($json) > 400000) throw new BladApi('zle_dane', 'Umowa jest za duża — wyczyść podpisy i podpisz jeszcze raz');
+    $teraz = date('Y-m-d H:i:s');
+    baza()->prepare('INSERT INTO app_umowy (wynajem_id, dane_json, utworzona, utworzyl) VALUES (?,?,?,?)')->execute([$id, $json, $teraz, $u['id']]);
+    odpowiedz(['ok' => true, 'id' => (int)baza()->lastInsertId(), 'utworzona' => $teraz]);
 }

@@ -30,6 +30,7 @@ import { zglos } from '@/stan/zglos';
 
 import { WyborDaty } from '../formularz/Wybory';
 import { usePodstronaArkusza } from '../ui/Arkusz';
+import { SzczegolyWynajmu } from './SzczegolyWynajmu';
 import { UmowaNajmu } from './UmowaNajmu';
 import { useKomunikaty } from '../ui/Komunikaty';
 import { PoleLiczby } from '../ui/Numpad';
@@ -37,7 +38,7 @@ import { Etykieta, Pole, Sekcja } from '../ui/Pola';
 import { Przelacznik } from '../ui/Przelacznik';
 import { PrzyciskGlowny } from '../ui/Przyciski';
 
-type Widok = { rodzaj: 'lista' } | { rodzaj: 'nowy' } | { rodzaj: 'edycja'; w: Wynajem } | { rodzaj: 'umowa'; w: Wynajem };
+type Widok = { rodzaj: 'lista' } | { rodzaj: 'nowy' } | { rodzaj: 'edycja'; w: Wynajem } | { rodzaj: 'umowa'; w: Wynajem } | { rodzaj: 'szczegoly'; id: number };
 
 /**
  * Wynajem sprzętu (arkusz sh-wynajem z PWA): lista z filtrami, dodawanie, edycja, „✓ Zwrócono”, usuwanie, 📤 obrazek.
@@ -52,7 +53,8 @@ export function WynajemSprzetu() {
   const [status, setStatus] = useState<FiltrStatusu>('aktywne');
   const [marka, setMarka] = useState<FiltrMarki>('wszystkie');
   const [widok, setWidok] = useState<Widok>({ rodzaj: 'lista' });
-  const [trwa, setTrwa] = useState<number | null>(null);
+  // trwa zapis (zwrot / usunięcie) — blokada podwójnego dotknięcia jest w oknie „Na pewno?”
+  const [, setTrwa] = useState<number | null>(null);
   const [doObrazka, setDoObrazka] = useState<Wynajem | null>(null);
   const obrazek = useRef<View>(null);
 
@@ -139,7 +141,32 @@ export function WynajemSprzetu() {
   if (!uzytkownik) return null;
 
   if (widok.rodzaj === 'umowa') {
-    return <UmowaNajmu w={widok.w} onWroc={() => setWidok({ rodzaj: 'lista' })} />;
+    const wu = widok.w;
+    return <UmowaNajmu w={wu} onWroc={() => setWidok({ rodzaj: 'szczegoly', id: wu.id })} onZapisano={(czas) => podmien({ ...wu, umowa_czas: czas })} />;
+  }
+
+  if (widok.rodzaj === 'szczegoly') {
+    const ws = lista?.find((x) => x.id === widok.id);
+    if (!ws) {
+      setWidok({ rodzaj: 'lista' });
+      return null;
+    }
+    return (
+      <>
+        <SzczegolyWynajmu
+          w={ws}
+          zmiana={moznaZmieniacWynajem(ws, uzytkownik.marka, uzytkownik.rola)}
+          umowaMozliwa={ws.marka === 'silt'}
+          onWroc={() => setWidok({ rodzaj: 'lista' })}
+          onZwroc={() => zwroc(ws)}
+          onEdytuj={() => setWidok({ rodzaj: 'edycja', w: ws })}
+          onUsun={() => usun(ws)}
+          onUdostepnij={() => setDoObrazka(ws)}
+          onUmowa={() => setWidok({ rodzaj: 'umowa', w: ws })}
+        />
+        {doObrazka ? <ObrazekWynajmu ref={obrazek} w={doObrazka} /> : null}
+      </>
+    );
   }
 
   if (widok.rodzaj !== 'lista') {
@@ -150,8 +177,8 @@ export function WynajemSprzetu() {
         zUmowa={(widok.rodzaj === 'edycja' ? widok.w.marka : uzytkownik.marka) === 'silt'}
         onWroc={() => setWidok({ rodzaj: 'lista' })}
         onZapisano={(w, nowy, umowa) => {
-          podmien(w);
-          setWidok(umowa ? { rodzaj: 'umowa', w } : { rodzaj: 'lista' });
+          podmien({ ...w, umowa_czas: lista?.find((x) => x.id === w.id)?.umowa_czas ?? null });
+          setWidok(umowa ? { rodzaj: 'umowa', w } : nowy ? { rodzaj: 'lista' } : { rodzaj: 'szczegoly', id: w.id });
           toast(nowy ? '✅ Wynajem zapisany!' : '✅ Zapisano!');
         }}
       />
@@ -197,10 +224,9 @@ export function WynajemSprzetu() {
 
       {widoczne.map((w) => {
         const st = statusWynajmu(w);
-        const zmiana = moznaZmieniacWynajem(w, uzytkownik.marka, uzytkownik.rola);
         const sprzet = tekstSprzetu(w.sprzet);
         return (
-          <View key={w.id} style={styles.pozycja}>
+          <Pressable key={w.id} onPress={() => setWidok({ rodzaj: 'szczegoly', id: w.id })} style={({ pressed }) => [styles.pozycja, pressed && { opacity: 0.7 }]} accessibilityRole="button">
             <View style={styles.gora}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.nazwa}>
@@ -223,15 +249,9 @@ export function WynajemSprzetu() {
                 {w.zaplacono ? <Text style={styles.zaplacono}> ✅ Zapłacono</Text> : <Text style={styles.niezaplacono}> ⏳ Nieopłacony</Text>}
               </Text>
             </View>
-            <View style={styles.akcje}>
-              {zmiana && !w.zwrocono ? <Maly tekst="✓ Zwrócono" tlo="#e8f5e9" kolor={C.green} ramka="#a5d6a7" onPress={() => zwroc(w)} wylaczony={trwa === w.id} /> : null}
-              {zmiana ? <Maly tekst="✏️ Edytuj" tlo="#fff3e0" kolor={C.pomarancz} ramka="#ffcc80" onPress={() => setWidok({ rodzaj: 'edycja', w })} /> : null}
-              {moze && w.marka === 'silt' ? <Maly tekst="📝 Umowa" tlo="#EDF7F0" kolor={C.green} ramka="#a5d6a7" onPress={() => setWidok({ rodzaj: 'umowa', w })} /> : null}
-              <Maly tekst="📤" tlo="#e3f2fd" kolor="#1565c0" ramka="#90caf9" onPress={() => setDoObrazka(w)} wylaczony={!!doObrazka} opis="Udostępnij" />
-              {zmiana ? <Maly tekst="🗑" tlo={C.redL} kolor={C.red} ramka="#f5c0bb" onPress={() => usun(w)} wylaczony={trwa === w.id} opis="Usuń" /> : null}
-            </View>
+            {w.umowa_czas ? <Text style={styles.zUmowa}>📄 Umowa podpisana</Text> : null}
             {w.uwagi ? <Text style={styles.uwagi}>💬 {w.uwagi}</Text> : null}
-          </View>
+          </Pressable>
         );
       })}
 
@@ -244,18 +264,6 @@ function Chip({ tekst, aktywny, kolor, onPress }: { tekst: string; aktywny: bool
   return (
     <Pressable onPress={onPress} accessibilityState={{ selected: aktywny }} style={[styles.chip, aktywny && { backgroundColor: kolor, borderColor: kolor }]}>
       <Text style={[styles.chipTxt, aktywny && { color: '#fff' }]}>{tekst}</Text>
-    </Pressable>
-  );
-}
-
-function Maly({ tekst, tlo, kolor, ramka, onPress, wylaczony, opis }: { tekst: string; tlo: string; kolor: string; ramka: string; onPress: () => void; wylaczony?: boolean; opis?: string }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={wylaczony}
-      accessibilityLabel={opis ?? tekst}
-      style={({ pressed }) => [styles.maly, { backgroundColor: tlo, borderColor: ramka, opacity: wylaczony ? 0.5 : pressed ? 0.75 : 1 }]}>
-      <Text style={[styles.malyTxt, { color: kolor }]}>{tekst}</Text>
     </Pressable>
   );
 }
@@ -473,9 +481,7 @@ const styles = StyleSheet.create({
   kwota: { fontFamily: Fonts.regular, fontSize: 13, color: C.text },
   zaplacono: { color: C.green, fontSize: 11 },
   niezaplacono: { color: C.pomarancz, fontSize: 11 },
-  akcje: { flexDirection: 'row', gap: 6, marginTop: 8, flexWrap: 'wrap' },
-  maly: { minHeight: 38, paddingVertical: 7, paddingHorizontal: 12, borderRadius: 6, borderWidth: 0.5, justifyContent: 'center' },
-  malyTxt: { fontFamily: Fonts.semibold, fontSize: 12 },
+  zUmowa: { fontFamily: Fonts.medium, fontSize: 12, color: C.green, marginTop: 4 },
   uwagi: { fontFamily: Fonts.regular, fontSize: 11, color: C.text2, marginTop: 6 },
   wroc: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingBottom: 12, marginBottom: 14, borderBottomWidth: 1, borderBottomColor: C.border },
   wrocStrzalka: { fontSize: 20, color: C.text2, paddingRight: 4 },

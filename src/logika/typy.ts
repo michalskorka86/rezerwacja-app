@@ -92,6 +92,8 @@ export type Wynajem = {
   faktura_nip: string | null;
   faktura_email: string | null;
   przeterminowany: boolean;
+  /** czas ostatniej podpisanej umowy (app_umowy) albo null */
+  umowa_czas?: string | null;
 };
 
 export type Zadanie = {

@@ -301,3 +301,7 @@ Nowe tabele jako pliki `server/sql/NNN_*.sql` (wgrywane ręcznie w phpMyAdmin), 
   (nic obowiązkowego, puste = kropki) → podpisy palcem / rysikiem (`PolePodpisu`, bez nowych modułów) → PDF A4 (expo-print)
   do udostępnienia lub druk. Tekst 1:1 ze wzoru papierowego (`src/logika/umowa.ts`). Umowa NIE trafia na serwer (RODO).
   05.11: Android — PDF zapisuje się sam w folderze wybranym raz (SAF, `src/stan/zapisUmowy.ts`, adres w SecureStore), potem menu udostępniania.
+- 05.11: umowa na serwerze (decyzja Michała): tabela `app_umowy` (sql/003_umowy.sql), akcje `umowa` i `umowa_zapisz`,
+  `wynajmy` zwraca `umowa_czas`; usunięcie wynajmu kasuje jego umowy. Wynajem na cały ekran (`SzczegolyWynajmu`) z sekcją Umowa
+  (podgląd / udostępnij / nowa). Strona 2 PDF = załącznik nr 1: tabela sprzęt · model · ilość · uwagi + podpisy;
+  modele w `MODELE` (src/logika/umowa.ts) — Bateria = Li-Po bez modelu, Gelblaster = Piranha / Valken Surge 2.

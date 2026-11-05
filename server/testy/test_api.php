@@ -81,7 +81,7 @@ function jako(string $t): void
 
 // ── Dane testowe (czysta baza) ──────────────────────────────
 $pdo->exec('SET FOREIGN_KEY_CHECKS = 0');
-foreach (['logi_maili', 'rezerwacje', 'wynajmy', 'zadania', 'uzytkownicy', 'atrakcje', 'dodatki', 'ustawienia', 'app_tokeny', 'app_logowania_bledne', 'app_bledy', 'app_push_wyslane'] as $t) {
+foreach (['logi_maili', 'rezerwacje', 'wynajmy', 'zadania', 'uzytkownicy', 'atrakcje', 'dodatki', 'ustawienia', 'app_tokeny', 'app_logowania_bledne', 'app_bledy', 'app_push_wyslane', 'app_umowy'] as $t) {
     $pdo->exec("TRUNCATE TABLE `$t`");
 }
 $pdo->exec('SET FOREIGN_KEY_CHECKS = 1');
@@ -315,7 +315,24 @@ $r = api('wynajem_zwroc', ['id' => $wynId]);
 sprawdz('zwrócony', ($r['wynajem']['zwrocono'] ?? false) === true, $r);
 $r = api('wynajmy', null, ['status' => 'zwrocone', 'marka' => 'silt']);
 sprawdz('lista zwróconych SILT', array_column($r['wynajmy'] ?? [], 'id') === [$wynId], $r);
+$r = api('umowa', null, ['wynajem_id' => $wynId]);
+sprawdz('umowa: na początku brak', ($r['ok'] ?? false) && array_key_exists('umowa', $r) && $r['umowa'] === null, $r);
+$umowa = ['imie' => 'Firma XYZ', 'dowodNumer' => 'ABC123', 'pozycje' => [['sprzet' => 'Maska', 'model' => 'Dye SE Thermal', 'ilosc' => '10', 'uwagi' => '']],
+    'podpisy' => ['najemca' => ['sciezka' => 'M1 1 L5 5', 'szer' => 300, 'wys' => 170, 'czas' => '05.11.2026, 14:32']]];
+jako($tPawel);
+$r = api('umowa_zapisz', ['wynajem_id' => $wynId, 'dane' => $umowa]);
+sprawdz('umowa: wynajem innej marki → 403', $r['_http'] === 403, $r);
+jako($tMichal);
+$r = api('umowa_zapisz', ['wynajem_id' => $wynId, 'dane' => $umowa]);
+sprawdz('umowa zapisana', ($r['ok'] ?? false) && ($r['id'] ?? 0) > 0 && !empty($r['utworzona']), $r);
+$r = api('umowa', null, ['wynajem_id' => $wynId]);
+sprawdz('umowa odczytana z podpisem', ($r['umowa']['dane']['podpisy']['najemca']['sciezka'] ?? '') === 'M1 1 L5 5' && ($r['umowa']['dane']['pozycje'][0]['model'] ?? '') === 'Dye SE Thermal', $r);
+$r = api('wynajmy', null, ['status' => 'wszystkie']);
+sprawdz('lista wynajmów wie o umowie', !empty($r['wynajmy'][0]['umowa_czas'] ?? null), $r);
+$r = api('umowa_zapisz', ['wynajem_id' => $wynId, 'dane' => 'x']);
+sprawdz('umowa: złe dane → komunikat', ($r['msg'] ?? '') === 'Brak danych umowy', $r);
 $r = api('wynajem_usun', ['id' => $wynId]);
+sprawdz('usunięty wynajem zabiera umowę', (int)$pdo->query('SELECT COUNT(*) FROM app_umowy')->fetchColumn() === 0, $r);
 sprawdz('usunięty', ($r['ok'] ?? false) && (int)$pdo->query('SELECT COUNT(*) FROM wynajmy')->fetchColumn() === 0, $r);
 
 // ── Zadania ─────────────────────────────────────────────────

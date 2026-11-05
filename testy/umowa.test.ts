@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 
-import { dataPl, domyslneUmowy, htmlUmowy } from '../src/logika/umowa';
+import { dataPl, domyslneUmowy, htmlUmowy, rozdzielPozycje } from '../src/logika/umowa';
 
-const wynajem = { klient_imie_nazwisko: 'Jan <Kowalski>', klient_telefon: '501 234 567', data_wynajmu: '2026-11-05', data_zwrotu: '2026-11-07', kwota: 600, sprzet: { Maska: 4, Marker: 0 } };
+const wynajem = { klient_imie_nazwisko: 'Jan <Kowalski>', klient_telefon: '501 234 567', data_wynajmu: '2026-11-05', data_zwrotu: '2026-11-07', kwota: 600, sprzet: { Maska: 4, 'Marker 0,68 CAL': 4, Mundur: 0 } };
 
 test('umowa: dane z wynajmu i domyślne kwoty', () => {
   const d = domyslneUmowy(wynajem, '2026-11-05');
@@ -11,7 +11,12 @@ test('umowa: dane z wynajmu i domyślne kwoty', () => {
   assert.equal(d.dataZwrotu, '2026-11-07');
   assert.equal(d.zaDzienZwloki, '100');
   assert.equal(d.wartoscSprzetu, '6000');
-  assert.equal(d.sprzet, '4× Maska');
+  assert.deepEqual(d.pozycje, [
+    { sprzet: 'Maska', model: 'Dye SE Thermal', ilosc: '4', uwagi: '' },
+    { sprzet: 'Marker 0,68 CAL', model: '', ilosc: '4', uwagi: '' },
+  ]);
+  const r = rozdzielPozycje(d.pozycje, 1);
+  assert.deepEqual(r.slice(1).map((p) => [p.sprzet, p.ilosc]), [['Marker 0,68 CAL', '3'], ['Marker 0,68 CAL', '1']]);
   assert.equal(dataPl('2026-11-07'), '07.11.2026');
 });
 
@@ -25,6 +30,8 @@ test('umowa: wypełnione pola, kropki zamiast pustych, znaki HTML zabezpieczone,
   assert.ok(html.includes('d="M1 1 L5 5"'));
   assert.ok(html.includes('podpisano 05.11.2026, 14:32'));
   assert.ok(html.includes('SILT Jakub Czapliński NIP 113 123 52 47'));
+  assert.ok(html.includes('<td>Maska</td><td>Dye SE Thermal</td><td class="il">4</td>'), 'załącznik z modelem');
+  assert.equal((html.match(/Podpis Najemcy/g) ?? []).length, 2, 'podpisy na obu stronach');
 });
 
 test('umowa: nic nie jest obowiązkowe — pusta umowa też się tworzy', () => {
