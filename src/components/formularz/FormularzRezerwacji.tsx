@@ -207,37 +207,39 @@ export function FormularzRezerwacji({
             <Pole value={s.instrukcje} onChangeText={(t) => zmien({ instrukcje: t })} placeholder="np. Uwaga — dzieci poniżej 18 lat, tort o 15:00, klient płaci gotówką..." multiline autoFocus={!s.instrukcje} />
           </Rozwijane>
         </Grupa>
-      </Arkusz>
 
-      <WyborDaty
-        widoczny={okienko === 'data'}
-        wybrana={s.data}
-        onWybierz={(ds) => {
-          zmien({ data: ds });
-          setOkienko(null);
-        }}
-        onZamknij={() => setOkienko(null)}
-      />
-      <WyborGodziny
-        cel={okienko === 'od' || okienko === 'do' ? okienko : null}
-        wybrana={okienko === 'do' ? s.do : s.od}
-        onWybierz={(g) => {
-          zmien(okienko === 'do' ? { do: g } : { od: g });
-          setOkienko(null);
-        }}
-        onWyczysc={() => {
-          zmien({ do: null });
-          setOkienko(null);
-        }}
-        onZamknij={() => setOkienko(null)}
-      />
-      <WyborDodatkow
-        widoczny={okienko === 'dodatki'}
-        dodatki={dodatki}
-        wybrane={s.dodatki}
-        onPrzelacz={(id) => zmien({ dodatki: przelaczDodatek(s.dodatki, id) })}
-        onZamknij={() => setOkienko(null)}
-      />
+        {/* Okienka wyboru MUSZĄ być wewnątrz arkusza: na iPhonie drugie okno obok otwartego się nie pokazuje
+            (data i godzina „nie dawały się zmienić”), w środku otwiera się nad formularzem. */}
+        <WyborDaty
+          widoczny={okienko === 'data'}
+          wybrana={s.data}
+          onWybierz={(ds) => {
+            zmien({ data: ds });
+            setOkienko(null);
+          }}
+          onZamknij={() => setOkienko(null)}
+        />
+        <WyborGodziny
+          cel={okienko === 'od' || okienko === 'do' ? okienko : null}
+          wybrana={okienko === 'do' ? s.do : s.od}
+          onWybierz={(g) => {
+            zmien(okienko === 'do' ? { do: g } : { od: g });
+            setOkienko(null);
+          }}
+          onWyczysc={() => {
+            zmien({ do: null });
+            setOkienko(null);
+          }}
+          onZamknij={() => setOkienko(null)}
+        />
+        <WyborDodatkow
+          widoczny={okienko === 'dodatki'}
+          dodatki={dodatki}
+          wybrane={s.dodatki}
+          onPrzelacz={(id) => zmien({ dodatki: przelaczDodatek(s.dodatki, id) })}
+          onZamknij={() => setOkienko(null)}
+        />
+      </Arkusz>
     </>
   );
 }
