@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Animated, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -32,22 +32,36 @@ const Kontekst = createContext<Ctx>({
 });
 export const useKomunikaty = () => useContext(Kontekst);
 
-/** Treść toastu i paska błędu — osobno, żeby otwarte arkusze (osobne okna) też mogły je pokazać. */
+/** Treść toastu, paska błędu i pytania — osobno, żeby otwarte arkusze (osobne okna) też mogły je pokazać. */
 const Warstwa = createContext<{
   tekst: string;
   op: Animated.Value | null;
   blad: string | null;
-}>({ tekst: '', op: null, blad: null });
+  pytanie: Pytanie | null;
+  anuluj: () => void;
+  potwierdz: () => void;
+  /** id najwyższej warstwy (ostatnio otwartego okna) — tylko ona pokazuje pytanie */
+  gorna: number | null;
+  zapisz: (id: number) => () => void;
+}>({ tekst: '', op: null, blad: null, pytanie: null, anuluj: () => {}, potwierdz: () => {}, gorna: null, zapisz: () => () => {} });
+
+let kolejnaWarstwa = 0;
 
 /**
  * Toast i pasek błędu. Jest w głównym oknie i w każdym arkuszu — inaczej komunikat chowałby się pod otwartym arkuszem.
  */
-export function WarstwaKomunikatow() {
-  const { tekst, op, blad } = useContext(Warstwa);
+export function WarstwaKomunikatow({ glowna }: { glowna?: boolean }) {
+  const { tekst, op, blad, pytanie, anuluj, potwierdz, gorna, zapisz } = useContext(Warstwa);
   const insets = useSafeAreaInsets();
+  // główne okno = 0 (zawsze najniżej), każdy otwarty arkusz / okienko — kolejny numer
+  const [id] = useState(() => (glowna ? 0 : ++kolejnaWarstwa));
+  useEffect(() => (id ? zapisz(id) : undefined), [zapisz, id]);
   if (!op) return null;
   return (
     <>
+      {/* Pytanie „Na pewno?” w NAJWYŻSZYM otwartym oknie (wewnątrz niego). Poprawka: na iPhonie okno otwierane
+          obok otwartego arkusza się nie pokazywało — np. „Usuń rezerwację” nic nie robiło. */}
+      {pytanie && gorna === id ? <OknoPytania pytanie={pytanie} anuluj={anuluj} potwierdz={potwierdz} /> : null}
       {blad ? (
         <View pointerEvents="none" style={[styles.bladWrap, { bottom: 80 + insets.bottom }]}>
           <Text style={styles.blad}>{blad}</Text>
@@ -70,6 +84,16 @@ export function KomunikatyProvider({ children }: { children: ReactNode }) {
     setPytanie(null);
   };
   const [blad, setBlad] = useState<string | null>(null);
+  const [warstwy, setWarstwy] = useState<number[]>([]);
+  const zapisz = useCallback((id: number) => {
+    setWarstwy((w) => [...w, id]);
+    return () => setWarstwy((w) => w.filter((x) => x !== id));
+  }, []);
+  const potwierdz = () => {
+    const f = pytanie?.onOk;
+    setPytanie(null);
+    f?.();
+  };
   const [op] = useState(() => new Animated.Value(0));
   const zegar = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -97,44 +121,32 @@ export function KomunikatyProvider({ children }: { children: ReactNode }) {
 
   return (
     <Kontekst.Provider value={{ toast, zapytaj: setPytanie, pasekBledu: setBlad }}>
-      <Warstwa.Provider value={{ tekst, op, blad }}>
+      <Warstwa.Provider value={{ tekst, op, blad, pytanie, anuluj, potwierdz, gorna: warstwy[warstwy.length - 1] ?? 0, zapisz }}>
         {children}
-        {/* tworzone dopiero przy pytaniu — wtedy zawsze NAD otwartymi arkuszami */}
-        {pytanie ? (
-          <Modal visible transparent animationType="fade" onRequestClose={anuluj} statusBarTranslucent>
-            <Pressable style={styles.tlo} onPress={anuluj}>
-              <Pressable style={styles.okno} onPress={() => {}}>
-                <Text style={styles.tytul}>{pytanie?.tytul}</Text>
-                {pytanie?.tekst ? <Text style={styles.tekst}>{pytanie.tekst}</Text> : null}
-                <View style={styles.przyciski}>
-                  <Pressable
-                    onPress={anuluj}
-                    style={({ pressed }) => [styles.btn, styles.anuluj, pressed && styles.wcisniety]}>
-                    <Text style={[styles.btnTxt, { color: C.text }]}>Anuluj</Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => {
-                      const f = pytanie?.onOk;
-                      setPytanie(null);
-                      f?.();
-                    }}
-                    style={({ pressed }) => [
-                      styles.btn,
-                      {
-                        backgroundColor: pytanie?.niebezpieczne ? C.red : C.text,
-                      },
-                      pressed && styles.wcisniety,
-                    ]}>
-                    <Text style={[styles.btnTxt, { color: '#fff' }]}>{pytanie?.ok}</Text>
-                  </Pressable>
-                </View>
-              </Pressable>
-            </Pressable>
-          </Modal>
-        ) : null}
-        <WarstwaKomunikatow />
+        <WarstwaKomunikatow glowna />
       </Warstwa.Provider>
     </Kontekst.Provider>
+  );
+}
+
+function OknoPytania({ pytanie, anuluj, potwierdz }: { pytanie: Pytanie; anuluj: () => void; potwierdz: () => void }) {
+  return (
+    <Modal visible transparent animationType="fade" onRequestClose={anuluj} statusBarTranslucent>
+      <Pressable style={styles.tlo} onPress={anuluj}>
+        <Pressable style={styles.okno} onPress={() => {}}>
+          <Text style={styles.tytul}>{pytanie.tytul}</Text>
+          {pytanie.tekst ? <Text style={styles.tekst}>{pytanie.tekst}</Text> : null}
+          <View style={styles.przyciski}>
+            <Pressable onPress={anuluj} style={({ pressed }) => [styles.btn, styles.anuluj, pressed && styles.wcisniety]}>
+              <Text style={[styles.btnTxt, { color: C.text }]}>Anuluj</Text>
+            </Pressable>
+            <Pressable onPress={potwierdz} style={({ pressed }) => [styles.btn, { backgroundColor: pytanie.niebezpieczne ? C.red : C.text }, pressed && styles.wcisniety]}>
+              <Text style={[styles.btnTxt, { color: '#fff' }]}>{pytanie.ok}</Text>
+            </Pressable>
+          </View>
+        </Pressable>
+      </Pressable>
+    </Modal>
   );
 }
 
